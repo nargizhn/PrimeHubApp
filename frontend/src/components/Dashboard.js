@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth } from "../firebase";
-import logo from "../assets/logo 7.png";
+import logo from "../assets/prime-logo.png";
 import { FaUser, FaList, FaStar } from "react-icons/fa";
 
 import photo1 from "../assets/event1.jpg";

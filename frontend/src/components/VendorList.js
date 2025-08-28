@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import logo from "../assets/logo6.png"; 
+import logo from "../assets/prime-logo.png"; 
 
 const vendorsMock = [
   { id: 1, category: "Art", city: "New York", representative: "Alice", name: "FaceArt", contact: "123-456-7890", rating: 4.5, price: "$200", notes: "Specializes in murals", images: ["img1.jpg"] },
