@@ -10,9 +10,17 @@ import photo3 from "../assets/event3.jpg";
 
 const photos = [photo1, photo2, photo3];
 
-const Dashboard = () => {
+const Dashboard = ({ setUser }) => {
   const navigate = useNavigate();
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  const handleLogout = () => {
+    localStorage.removeItem("loggedInUser"); // clear fake auth
+    setUser(null); 
+    navigate("/"); // redirect to login
+};
+
+
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -50,6 +58,10 @@ const Dashboard = () => {
           <div style={styles.navItem} onClick={() => navigate("/rate-vendors")}>
             <FaStar size={18} style={styles.icon} /> Rate Vendors
           </div>
+          <div style={styles.navItem} onClick={handleLogout}>
+            🚪 Logout
+          </div>
+
         </nav>
       </aside>
           <main style={styles.main}>

@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import primelogo from './primelogo.png';
+import { useNavigate } from "react-router-dom";  
+import logo from '../assets/primelogo.png';
 
-function LoginSignup() {
+function LoginSignup( { setUser }) {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
+  const navigate = useNavigate();  
 
   // Helper to get users from localStorage
   const getUsers = () => {
@@ -33,6 +35,7 @@ function LoginSignup() {
       users[email] = password;
       saveUsers(users);
       setMessage(`Account created for ${email}!`);
+      setIsSignUp(false);
     } else {
       if (!users[email]) {
         setMessage('No account found for this email.');
@@ -42,7 +45,9 @@ function LoginSignup() {
         setMessage('Incorrect password.');
         return;
       }
-      setMessage(`Logged in as ${email}!`);
+      localStorage.setItem("loggedInUser", email);
+      setUser(email);
+      navigate("/dashboard");
     }
     setEmail('');
     setPassword('');
@@ -71,7 +76,7 @@ function LoginSignup() {
         }}
       >
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <img src={primelogo} alt="Logo" style={{ width: 120, height: 120, objectFit: 'contain', borderRadius: 16, boxShadow: '0 2px 12px rgba(59,130,246,0.12)' }} />
+          <img src={logo} alt="Logo" style={{ width: 120, height: 120, objectFit: 'contain', borderRadius: 16, boxShadow: '0 2px 12px rgba(59,130,246,0.12)' }} />
         </div>
         <h2 style={{ textAlign: 'center', color: '#ff0000', marginBottom: 24, fontWeight: 700 }}>
           {isSignUp ? 'Sign Up' : 'Login'}
@@ -154,7 +159,7 @@ function LoginSignup() {
           </button>
         </div>
         {message && (
-          <div style={{ marginTop: 18, color: '#ff4d4d', textAlign: 'center', fontWeight: 500 }}>
+          <div style={{ marginTop: 18, color: 'green', textAlign: 'center', fontWeight: 500 }}>
             {message}
           </div>
         )}
