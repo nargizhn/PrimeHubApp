@@ -1,20 +1,17 @@
 import React, { useState } from 'react';
-import { Camera, Edit2, Save, X, Eye, EyeOff, User, Mail, Phone, Calendar } from 'lucide-react';
+import { Camera, Edit2, Save, X, Eye, EyeOff, User, Mail, Calendar } from 'lucide-react';
 
-export default function UserProfilePage() {
+export default function UserProfilePage({ email }) {
   const [user, setUser] = useState({
-    firstName: 'John',
-    lastName: 'Doe',
-    email: 'john.doe@email.com',
-    phone: '+1 (555) 123-4567',
-    joinDate: 'January 2023',
+    firstName: 'Aykhan',
+    lastName: 'Huseynli',
+    email: email || '', // use prop email
     profileImage: null
   });
 
   const [isEditing, setIsEditing] = useState({
     name: false,
-    email: false,
-    phone: false
+    // email: false, // remove email editing
   });
 
   const [tempData, setTempData] = useState({});
@@ -42,8 +39,6 @@ export default function UserProfilePage() {
         firstName: tempData.firstName || user.firstName,
         lastName: tempData.lastName || user.lastName
       });
-    } else {
-      setUser({ ...user, [field]: tempData[field] });
     }
     setIsEditing({ ...isEditing, [field]: false });
     setTempData({ ...tempData, [field]: undefined });
@@ -87,7 +82,7 @@ export default function UserProfilePage() {
   const styles = {
     container: {
       minHeight: '100vh',
-      backgroundColor: '#f5f5f5',
+      backgroundColor: '#fff', // white background for consistency
       padding: '32px 0',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
     },
@@ -97,15 +92,15 @@ export default function UserProfilePage() {
       padding: '0 16px'
     },
     card: {
-      backgroundColor: 'white',
+      backgroundColor: '#fff',
       borderRadius: '8px',
-      boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
+      boxShadow: '0 10px 25px rgba(0,0,0,0.07)',
       overflow: 'hidden'
     },
     header: {
-      background: 'linear-gradient(135deg, #dc2626, #000000)',
+      background: 'linear-gradient(90deg, #000 0%, #dc2626 100%)', // black to red
       padding: '32px 24px',
-      color: 'white'
+      color: '#fff'
     },
     headerTitle: {
       fontSize: '32px',
@@ -113,7 +108,7 @@ export default function UserProfilePage() {
       margin: 0
     },
     headerSubtitle: {
-      color: 'rgba(255, 255, 255, 0.8)',
+      color: 'rgba(255,255,255,0.8)',
       marginTop: '8px',
       margin: 0
     },
@@ -139,10 +134,10 @@ export default function UserProfilePage() {
       width: '128px',
       height: '128px',
       borderRadius: '50%',
-      backgroundColor: '#e5e7eb',
+      backgroundColor: '#f3f4f6',
       overflow: 'hidden',
-      border: '4px solid white',
-      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+      border: '4px solid #fff',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.10)'
     },
     avatarImage: {
       width: '100%',
@@ -155,20 +150,20 @@ export default function UserProfilePage() {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      background: 'linear-gradient(135deg, #dc2626, #000000)',
-      color: 'white'
+      background: 'linear-gradient(90deg, #000 0%, #dc2626 100%)',
+      color: '#fff'
     },
     uploadButton: {
       position: 'absolute',
       bottom: 0,
       right: 0,
       backgroundColor: '#dc2626',
-      color: 'white',
+      color: '#fff',
       padding: '8px',
       borderRadius: '50%',
       cursor: 'pointer',
       border: 'none',
-      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
       transition: 'background-color 0.2s'
     },
     uploadButtonHover: {
@@ -196,7 +191,7 @@ export default function UserProfilePage() {
       alignItems: 'center',
       gap: '8px',
       fontSize: '14px',
-      color: '#6b7280'
+      color: '#dc2626' // accent red
     },
     grid: {
       display: 'grid',
@@ -205,7 +200,7 @@ export default function UserProfilePage() {
       marginBottom: '32px'
     },
     field: {
-      backgroundColor: '#f9fafb',
+      backgroundColor: '#f3f4f6', // light gray for input cards
       borderRadius: '8px',
       padding: '16px'
     },
@@ -222,7 +217,7 @@ export default function UserProfilePage() {
     },
     labelText: {
       fontWeight: '500',
-      color: '#374151'
+      color: '#dc2626' // accent red for labels
     },
     editButton: {
       color: '#dc2626',
@@ -252,7 +247,7 @@ export default function UserProfilePage() {
     },
     inputFocus: {
       borderColor: '#dc2626',
-      boxShadow: '0 0 0 3px rgba(220, 38, 38, 0.1)'
+      boxShadow: '0 0 0 3px rgba(220,38,38,0.10)'
     },
     nameGrid: {
       display: 'grid',
@@ -288,7 +283,7 @@ export default function UserProfilePage() {
     saveButton: {
       padding: '4px 12px',
       backgroundColor: '#dc2626',
-      color: 'white',
+      color: '#fff',
       border: 'none',
       borderRadius: '6px',
       cursor: 'pointer',
@@ -298,7 +293,7 @@ export default function UserProfilePage() {
       backgroundColor: '#b91c1c'
     },
     passwordSection: {
-      backgroundColor: '#f9fafb',
+      backgroundColor: '#f3f4f6',
       borderRadius: '8px',
       padding: '24px',
       marginBottom: '32px'
@@ -317,7 +312,7 @@ export default function UserProfilePage() {
     },
     passwordButton: {
       backgroundColor: '#dc2626',
-      color: 'white',
+      color: '#fff',
       padding: '8px 16px',
       borderRadius: '6px',
       border: 'none',
@@ -343,7 +338,7 @@ export default function UserProfilePage() {
     passwordLabel: {
       fontSize: '14px',
       fontWeight: '500',
-      color: '#374151'
+      color: '#dc2626' // accent red for password labels
     },
     passwordInputWrapper: {
       position: 'relative'
@@ -365,12 +360,12 @@ export default function UserProfilePage() {
       background: 'none',
       border: 'none',
       cursor: 'pointer',
-      color: '#9ca3af',
+      color: '#dc2626', // accent red for eye icon
       padding: '0'
     },
     updatePasswordButton: {
-      backgroundColor: '#000000',
-      color: 'white',
+      backgroundColor: '#000',
+      color: '#fff',
       padding: '8px 24px',
       borderRadius: '6px',
       border: 'none',
@@ -396,7 +391,7 @@ export default function UserProfilePage() {
     },
     saveAllButton: {
       backgroundColor: '#dc2626',
-      color: 'white',
+      color: '#fff',
       padding: '12px 32px',
       borderRadius: '6px',
       border: 'none',
@@ -416,7 +411,7 @@ export default function UserProfilePage() {
     }
   };
 
-  const ProfileField = ({ label, field, value, icon: Icon, type = "text" }) => {
+  const ProfileField = ({ label, field, value, icon: Icon, type = "text", readOnly = false }) => {
     return (
       <div style={styles.field}>
         <div style={styles.fieldHeader}>
@@ -424,7 +419,7 @@ export default function UserProfilePage() {
             <Icon size={16} color="#6b7280" />
             <span style={styles.labelText}>{label}</span>
           </div>
-          {!isEditing[field] && (
+          {!isEditing[field] && field === 'name' && (
             <button
               onClick={() => handleEdit(field)}
               style={styles.editButton}
@@ -471,22 +466,7 @@ export default function UserProfilePage() {
                   }}
                 />
               </div>
-            ) : (
-              <input
-                type={type}
-                value={tempData[field] || value}
-                onChange={(e) => setTempData({ ...tempData, [field]: e.target.value })}
-                style={styles.input}
-                onFocus={(e) => {
-                  e.target.style.borderColor = styles.inputFocus.borderColor;
-                  e.target.style.boxShadow = styles.inputFocus.boxShadow;
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = styles.input.borderColor;
-                  e.target.style.boxShadow = 'none';
-                }}
-              />
-            )}
+            ) : null}
             <div style={styles.buttonGroup}>
               <button
                 onClick={() => handleCancel(field)}
@@ -507,9 +487,18 @@ export default function UserProfilePage() {
             </div>
           </div>
         ) : (
-          <p style={styles.fieldValue}>
-            {field === 'name' ? `${user.firstName} ${user.lastName}` : value}
-          </p>
+          field === 'email' ? (
+            <input
+              type="email"
+              value={user.email}
+              style={{ ...styles.input, backgroundColor: '#e5e7eb', color: '#6b7280', cursor: 'not-allowed' }}
+              readOnly
+            />
+          ) : (
+            <p style={styles.fieldValue}>
+              {field === 'name' ? `${user.firstName} ${user.lastName}` : value}
+            </p>
+          )
         )}
       </div>
     );
@@ -587,13 +576,7 @@ export default function UserProfilePage() {
                 value={user.email}
                 icon={Mail}
                 type="email"
-              />
-              <ProfileField
-                label="Phone Number"
-                field="phone"
-                value={user.phone}
-                icon={Phone}
-                type="tel"
+                readOnly={true}
               />
             </div>
 
