@@ -1,17 +1,81 @@
 import React, { useState } from 'react';
 import { Camera, Edit2, Save, X, Eye, EyeOff, User, Mail, Calendar } from 'lucide-react';
 
+// Move ProfileField component outside to prevent recreation on every render
+const ProfileField = ({ label, field, value, icon: Icon, type = "text", readOnly = false, 
+  isEditing, tempData, user, onEdit, onSave, onCancel, onTempDataChange, styles }) => {
+  return (
+    <div style={styles.field}>
+      <div style={styles.fieldHeader}>
+        <div style={styles.fieldLabel}>
+          <Icon size={16} color="#6b7280" />
+          <span style={styles.labelText}>{label}</span>
+        </div>
+        {!isEditing[field] && field === 'name' && (
+          <button onClick={() => onEdit(field)} style={styles.editButton}>
+            <Edit2 size={16} />
+          </button>
+        )}
+      </div>
+      
+      {isEditing[field] ? (
+        <div>
+          {field === 'name' ? (
+            <div style={styles.nameGrid}>
+              <input
+                type="text"
+                value={tempData.firstName !== undefined ? tempData.firstName : user.firstName}
+                onChange={(e) => onTempDataChange({ ...tempData, firstName: e.target.value })}
+                placeholder="First Name"
+                style={styles.input}
+                autoFocus
+              />
+              <input
+                type="text"
+                value={tempData.lastName !== undefined ? tempData.lastName : user.lastName}
+                onChange={(e) => onTempDataChange({ ...tempData, lastName: e.target.value })}
+                placeholder="Last Name"
+                style={styles.input}
+              />
+            </div>
+          ) : null}
+          <div style={styles.buttonGroup}>
+            <button onClick={() => onCancel(field)} style={styles.cancelButton}>
+              <X size={16} />
+            </button>
+            <button onClick={() => onSave(field)} style={styles.saveButton}>
+              <Save size={16} />
+            </button>
+          </div>
+        </div>
+      ) : (
+        field === 'email' ? (
+          <input
+            type="email"
+            value={user.email}
+            style={{ ...styles.input, backgroundColor: '#e5e7eb', color: '#6b7280', cursor: 'not-allowed' }}
+            readOnly
+          />
+        ) : (
+          <p style={styles.fieldValue}>
+            {field === 'name' ? `${user.firstName} ${user.lastName}` : value}
+          </p>
+        )
+      )}
+    </div>
+  );
+};
+
 export default function UserProfilePage({ email }) {
   const [user, setUser] = useState({
     firstName: 'Aykhan',
     lastName: 'Huseynli',
-    email: email || '', // use prop email
+    email: email || '',
     profileImage: null
   });
 
   const [isEditing, setIsEditing] = useState({
     name: false,
-    // email: false, // remove email editing
   });
 
   const [tempData, setTempData] = useState({});
@@ -36,8 +100,8 @@ export default function UserProfilePage({ email }) {
     if (field === 'name') {
       setUser({ 
         ...user, 
-        firstName: tempData.firstName || user.firstName,
-        lastName: tempData.lastName || user.lastName
+        firstName: tempData.firstName !== undefined ? tempData.firstName : user.firstName,
+        lastName: tempData.lastName !== undefined ? tempData.lastName : user.lastName
       });
     }
     setIsEditing({ ...isEditing, [field]: false });
@@ -69,7 +133,6 @@ export default function UserProfilePage({ email }) {
       alert('Password must be at least 6 characters long!');
       return;
     }
-    // In a real app, you would send this to your backend
     alert('Password changed successfully!');
     setPasswordData({
       currentPassword: '',
@@ -82,7 +145,7 @@ export default function UserProfilePage({ email }) {
   const styles = {
     container: {
       minHeight: '100vh',
-      backgroundColor: '#fff', // white background for consistency
+      backgroundColor: '#fff',
       padding: '32px 0',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
     },
@@ -98,7 +161,7 @@ export default function UserProfilePage({ email }) {
       overflow: 'hidden'
     },
     header: {
-      background: 'linear-gradient(90deg, #000 0%, #dc2626 100%)', // black to red
+      background: 'linear-gradient(90deg, #000 0%, #dc2626 100%)',
       padding: '32px 24px',
       color: '#fff'
     },
@@ -166,9 +229,6 @@ export default function UserProfilePage({ email }) {
       boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
       transition: 'background-color 0.2s'
     },
-    uploadButtonHover: {
-      backgroundColor: '#b91c1c'
-    },
     hiddenInput: {
       display: 'none'
     },
@@ -191,7 +251,7 @@ export default function UserProfilePage({ email }) {
       alignItems: 'center',
       gap: '8px',
       fontSize: '14px',
-      color: '#dc2626' // accent red
+      color: '#dc2626'
     },
     grid: {
       display: 'grid',
@@ -200,7 +260,7 @@ export default function UserProfilePage({ email }) {
       marginBottom: '32px'
     },
     field: {
-      backgroundColor: '#f3f4f6', // light gray for input cards
+      backgroundColor: '#f3f4f6',
       borderRadius: '8px',
       padding: '16px'
     },
@@ -217,7 +277,7 @@ export default function UserProfilePage({ email }) {
     },
     labelText: {
       fontWeight: '500',
-      color: '#dc2626' // accent red for labels
+      color: '#dc2626'
     },
     editButton: {
       color: '#dc2626',
@@ -227,9 +287,6 @@ export default function UserProfilePage({ email }) {
       padding: '4px',
       borderRadius: '4px',
       transition: 'color 0.2s'
-    },
-    editButtonHover: {
-      color: '#b91c1c'
     },
     fieldValue: {
       color: '#111827',
@@ -241,30 +298,14 @@ export default function UserProfilePage({ email }) {
       border: '1px solid #d1d5db',
       borderRadius: '6px',
       fontSize: '14px',
-      transition: 'border-color 0.2s, box-shadow 0.2s',
       outline: 'none',
       boxSizing: 'border-box'
-    },
-    inputFocus: {
-      borderColor: '#dc2626',
-      boxShadow: '0 0 0 3px rgba(220,38,38,0.10)'
     },
     nameGrid: {
       display: 'grid',
       gridTemplateColumns: '1fr 1fr',
       gap: '8px',
       marginBottom: '8px'
-    },
-    textarea: {
-      width: '100%',
-      padding: '8px 12px',
-      border: '1px solid #d1d5db',
-      borderRadius: '6px',
-      fontSize: '14px',
-      resize: 'none',
-      rows: 3,
-      outline: 'none',
-      boxSizing: 'border-box'
     },
     buttonGroup: {
       display: 'flex',
@@ -288,9 +329,6 @@ export default function UserProfilePage({ email }) {
       borderRadius: '6px',
       cursor: 'pointer',
       transition: 'background-color 0.2s'
-    },
-    saveButtonHover: {
-      backgroundColor: '#b91c1c'
     },
     passwordSection: {
       backgroundColor: '#f3f4f6',
@@ -321,9 +359,6 @@ export default function UserProfilePage({ email }) {
       fontWeight: '500',
       transition: 'background-color 0.2s'
     },
-    passwordButtonHover: {
-      backgroundColor: '#b91c1c'
-    },
     passwordForm: {
       display: 'grid',
       gap: '16px',
@@ -338,7 +373,7 @@ export default function UserProfilePage({ email }) {
     passwordLabel: {
       fontSize: '14px',
       fontWeight: '500',
-      color: '#dc2626' // accent red for password labels
+      color: '#dc2626'
     },
     passwordInputWrapper: {
       position: 'relative'
@@ -360,7 +395,7 @@ export default function UserProfilePage({ email }) {
       background: 'none',
       border: 'none',
       cursor: 'pointer',
-      color: '#dc2626', // accent red for eye icon
+      color: '#dc2626',
       padding: '0'
     },
     updatePasswordButton: {
@@ -374,9 +409,6 @@ export default function UserProfilePage({ email }) {
       fontWeight: '500',
       transition: 'background-color 0.2s',
       justifySelf: 'end'
-    },
-    updatePasswordButtonHover: {
-      backgroundColor: '#374151'
     },
     passwordDescription: {
       color: '#6b7280',
@@ -399,144 +431,32 @@ export default function UserProfilePage({ email }) {
       fontSize: '16px',
       fontWeight: '500',
       transition: 'background-color 0.2s'
-    },
-    saveAllButtonHover: {
-      backgroundColor: '#b91c1c'
-    },
-    '@media (min-width: 640px)': {
-      profileSection: {
-        flexDirection: 'row',
-        alignItems: 'flex-start'
-      }
     }
-  };
-
-  const ProfileField = ({ label, field, value, icon: Icon, type = "text", readOnly = false }) => {
-    return (
-      <div style={styles.field}>
-        <div style={styles.fieldHeader}>
-          <div style={styles.fieldLabel}>
-            <Icon size={16} color="#6b7280" />
-            <span style={styles.labelText}>{label}</span>
-          </div>
-          {!isEditing[field] && field === 'name' && (
-            <button
-              onClick={() => handleEdit(field)}
-              style={styles.editButton}
-              onMouseEnter={(e) => e.target.style.color = styles.editButtonHover.color}
-              onMouseLeave={(e) => e.target.style.color = styles.editButton.color}
-            >
-              <Edit2 size={16} />
-            </button>
-          )}
-        </div>
-        
-        {isEditing[field] ? (
-          <div>
-            {field === 'name' ? (
-              <div style={styles.nameGrid}>
-                <input
-                  type="text"
-                  value={tempData.firstName || user.firstName}
-                  onChange={(e) => setTempData({ ...tempData, firstName: e.target.value })}
-                  placeholder="First Name"
-                  style={styles.input}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = styles.inputFocus.borderColor;
-                    e.target.style.boxShadow = styles.inputFocus.boxShadow;
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = styles.input.borderColor;
-                    e.target.style.boxShadow = 'none';
-                  }}
-                />
-                <input
-                  type="text"
-                  value={tempData.lastName || user.lastName}
-                  onChange={(e) => setTempData({ ...tempData, lastName: e.target.value })}
-                  placeholder="Last Name"
-                  style={styles.input}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = styles.inputFocus.borderColor;
-                    e.target.style.boxShadow = styles.inputFocus.boxShadow;
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = styles.input.borderColor;
-                    e.target.style.boxShadow = 'none';
-                  }}
-                />
-              </div>
-            ) : null}
-            <div style={styles.buttonGroup}>
-              <button
-                onClick={() => handleCancel(field)}
-                style={styles.cancelButton}
-                onMouseEnter={(e) => e.target.style.color = '#374151'}
-                onMouseLeave={(e) => e.target.style.color = styles.cancelButton.color}
-              >
-                <X size={16} />
-              </button>
-              <button
-                onClick={() => handleSave(field)}
-                style={styles.saveButton}
-                onMouseEnter={(e) => e.target.style.backgroundColor = styles.saveButtonHover.backgroundColor}
-                onMouseLeave={(e) => e.target.style.backgroundColor = styles.saveButton.backgroundColor}
-              >
-                <Save size={16} />
-              </button>
-            </div>
-          </div>
-        ) : (
-          field === 'email' ? (
-            <input
-              type="email"
-              value={user.email}
-              style={{ ...styles.input, backgroundColor: '#e5e7eb', color: '#6b7280', cursor: 'not-allowed' }}
-              readOnly
-            />
-          ) : (
-            <p style={styles.fieldValue}>
-              {field === 'name' ? `${user.firstName} ${user.lastName}` : value}
-            </p>
-          )
-        )}
-      </div>
-    );
   };
 
   return (
     <div style={styles.container}>
       <div style={styles.wrapper}>
         <div style={styles.card}>
-          {/* Header */}
           <div style={styles.header}>
             <h1 style={styles.headerTitle}>Profile Settings</h1>
             <p style={styles.headerSubtitle}>Manage your account information and preferences</p>
           </div>
 
           <div style={styles.content}>
-            {/* Profile Picture Section */}
-            <div style={window.innerWidth >= 640 ? {...styles.profileSection, flexDirection: 'row'} : styles.profileSection}>
+            <div style={styles.profileSection}>
               <div style={styles.profileImageContainer}>
                 <div style={styles.avatarWrapper}>
                   <div style={styles.avatar}>
                     {user.profileImage ? (
-                      <img
-                        src={user.profileImage}
-                        alt="Profile"
-                        style={styles.avatarImage}
-                      />
+                      <img src={user.profileImage} alt="Profile" style={styles.avatarImage} />
                     ) : (
                       <div style={styles.avatarPlaceholder}>
                         <User size={64} />
                       </div>
                     )}
                   </div>
-                  <label 
-                    style={styles.uploadButton}
-                    onMouseEnter={(e) => e.target.style.backgroundColor = styles.uploadButtonHover.backgroundColor}
-                    onMouseLeave={(e) => e.target.style.backgroundColor = styles.uploadButton.backgroundColor}
-                  >
+                  <label style={styles.uploadButton}>
                     <Camera size={16} />
                     <input
                       type="file"
@@ -546,15 +466,11 @@ export default function UserProfilePage({ email }) {
                     />
                   </label>
                 </div>
-                <p style={styles.uploadText}>
-                  Click camera icon to upload
-                </p>
+                <p style={styles.uploadText}>Click camera icon to upload</p>
               </div>
 
               <div style={styles.welcomeSection}>
-                <h2 style={styles.welcomeTitle}>
-                  Welcome back, {user.firstName}!
-                </h2>
+                <h2 style={styles.welcomeTitle}>Welcome back, {user.firstName}!</h2>
                 <div style={styles.joinDate}>
                   <Calendar size={16} />
                   <span>Joined {user.joinDate}</span>
@@ -562,33 +478,45 @@ export default function UserProfilePage({ email }) {
               </div>
             </div>
 
-            {/* Profile Information */}
             <div style={styles.grid}>
-              <ProfileField
-                label="Full Name"
-                field="name"
-                value={`${user.firstName} ${user.lastName}`}
+              <ProfileField 
+                label="Full Name" 
+                field="name" 
+                value={`${user.firstName} ${user.lastName}`} 
                 icon={User}
+                isEditing={isEditing}
+                tempData={tempData}
+                user={user}
+                onEdit={handleEdit}
+                onSave={handleSave}
+                onCancel={handleCancel}
+                onTempDataChange={setTempData}
+                styles={styles}
               />
-              <ProfileField
-                label="Email Address"
-                field="email"
-                value={user.email}
-                icon={Mail}
-                type="email"
-                readOnly={true}
+              <ProfileField 
+                label="Email Address" 
+                field="email" 
+                value={user.email} 
+                icon={Mail} 
+                type="email" 
+                readOnly
+                isEditing={isEditing}
+                tempData={tempData}
+                user={user}
+                onEdit={handleEdit}
+                onSave={handleSave}
+                onCancel={handleCancel}
+                onTempDataChange={setTempData}
+                styles={styles}
               />
             </div>
 
-            {/* Password Section */}
             <div style={styles.passwordSection}>
               <div style={styles.passwordHeader}>
                 <h3 style={styles.passwordTitle}>Password & Security</h3>
                 <button
                   onClick={() => setShowPasswordForm(!showPasswordForm)}
                   style={styles.passwordButton}
-                  onMouseEnter={(e) => e.target.style.backgroundColor = styles.passwordButtonHover.backgroundColor}
-                  onMouseLeave={(e) => e.target.style.backgroundColor = styles.passwordButton.backgroundColor}
                 >
                   {showPasswordForm ? 'Cancel' : 'Change Password'}
                 </button>
@@ -598,25 +526,17 @@ export default function UserProfilePage({ email }) {
                 <div>
                   <div style={styles.passwordForm}>
                     <div style={styles.passwordField}>
-                      <label style={styles.passwordLabel}>
-                        Current Password
-                      </label>
+                      <label style={styles.passwordLabel}>Current Password</label>
                       <div style={styles.passwordInputWrapper}>
                         <input
                           type={showPasswords.current ? 'text' : 'password'}
                           value={passwordData.currentPassword}
-                          onChange={(e) => setPasswordData({
-                            ...passwordData,
-                            currentPassword: e.target.value
-                          })}
+                          onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
                           style={styles.passwordInput}
                         />
                         <button
                           type="button"
-                          onClick={() => setShowPasswords({
-                            ...showPasswords,
-                            current: !showPasswords.current
-                          })}
+                          onClick={() => setShowPasswords({ ...showPasswords, current: !showPasswords.current })}
                           style={styles.eyeButton}
                         >
                           {showPasswords.current ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -625,25 +545,17 @@ export default function UserProfilePage({ email }) {
                     </div>
 
                     <div style={styles.passwordField}>
-                      <label style={styles.passwordLabel}>
-                        New Password
-                      </label>
+                      <label style={styles.passwordLabel}>New Password</label>
                       <div style={styles.passwordInputWrapper}>
                         <input
                           type={showPasswords.new ? 'text' : 'password'}
                           value={passwordData.newPassword}
-                          onChange={(e) => setPasswordData({
-                            ...passwordData,
-                            newPassword: e.target.value
-                          })}
+                          onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
                           style={styles.passwordInput}
                         />
                         <button
                           type="button"
-                          onClick={() => setShowPasswords({
-                            ...showPasswords,
-                            new: !showPasswords.new
-                          })}
+                          onClick={() => setShowPasswords({ ...showPasswords, new: !showPasswords.new })}
                           style={styles.eyeButton}
                         >
                           {showPasswords.new ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -652,25 +564,17 @@ export default function UserProfilePage({ email }) {
                     </div>
 
                     <div style={styles.passwordField}>
-                      <label style={styles.passwordLabel}>
-                        Confirm New Password
-                      </label>
+                      <label style={styles.passwordLabel}>Confirm New Password</label>
                       <div style={styles.passwordInputWrapper}>
                         <input
                           type={showPasswords.confirm ? 'text' : 'password'}
                           value={passwordData.confirmPassword}
-                          onChange={(e) => setPasswordData({
-                            ...passwordData,
-                            confirmPassword: e.target.value
-                          })}
+                          onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
                           style={styles.passwordInput}
                         />
                         <button
                           type="button"
-                          onClick={() => setShowPasswords({
-                            ...showPasswords,
-                            confirm: !showPasswords.confirm
-                          })}
+                          onClick={() => setShowPasswords({ ...showPasswords, confirm: !showPasswords.confirm })}
                           style={styles.eyeButton}
                         >
                           {showPasswords.confirm ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -679,13 +583,8 @@ export default function UserProfilePage({ email }) {
                     </div>
                   </div>
 
-                  <div style={{display: 'flex', justifyContent: 'flex-end'}}>
-                    <button
-                      onClick={handlePasswordChange}
-                      style={styles.updatePasswordButton}
-                      onMouseEnter={(e) => e.target.style.backgroundColor = styles.updatePasswordButtonHover.backgroundColor}
-                      onMouseLeave={(e) => e.target.style.backgroundColor = styles.updatePasswordButton.backgroundColor}
-                    >
+                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <button onClick={handlePasswordChange} style={styles.updatePasswordButton}>
                       Update Password
                     </button>
                   </div>
@@ -693,21 +592,12 @@ export default function UserProfilePage({ email }) {
               )}
 
               {!showPasswordForm && (
-                <p style={styles.passwordDescription}>
-                  Keep your account secure with a strong password. Last changed: Never
-                </p>
+                <p style={styles.passwordDescription}>Keep your account secure with a strong password. Last changed: Never</p>
               )}
             </div>
 
-            {/* Save All Changes Button */}
             <div style={styles.footer}>
-              <button 
-                style={styles.saveAllButton}
-                onMouseEnter={(e) => e.target.style.backgroundColor = styles.saveAllButtonHover.backgroundColor}
-                onMouseLeave={(e) => e.target.style.backgroundColor = styles.saveAllButton.backgroundColor}
-              >
-                Save All Changes
-              </button>
+              <button style={styles.saveAllButton}>Save All Changes</button>
             </div>
           </div>
         </div>
