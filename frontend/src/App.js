@@ -8,7 +8,7 @@ import RateVendors from "./components/RateVendors";
 import LoginSignup from "./components/LoginSignup";
 
 function App() {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(null); 
 
   useEffect(() => {
     const storedUser = localStorage.getItem("loggedInUser");
@@ -20,6 +20,8 @@ function App() {
   return (
     <Router>
       <Routes>
+        <Route path="/login" element={<LoginSignup setUser={setUser} isLogin={true} />} />
+        <Route path="/signup" element={<LoginSignup setUser={setUser} isLogin={false} />} />
         <Route
           path="/"
           element={user ? <Navigate to="/dashboard" /> : <LoginSignup setUser={setUser} />}

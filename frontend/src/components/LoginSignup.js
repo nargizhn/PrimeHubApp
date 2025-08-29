@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate } from "react-router-dom";  
 import logo from '../assets/prime-logo.png';
 
-function LoginSignup( { setUser }) {
-  const [isSignUp, setIsSignUp] = useState(false);
+function LoginSignup( { setUser }, isLogin) {
+  const [isSignUp, setIsSignUp] = useState(!isLogin);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
