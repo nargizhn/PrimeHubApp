@@ -43,6 +43,13 @@ function App() {
           path="/rate-vendors"
           element={user ? <RateVendors /> : <Navigate to="/" />}
         />
+        <Route 
+        path="/edit-vendor/:vendorId" 
+        element={<EditVendor isAdmin={isAdmin} />} 
+        />
+        <Route 
+        path="/add-vendor" 
+        element={<AddVendor />} />
       </Routes>
     </Router>
   );
