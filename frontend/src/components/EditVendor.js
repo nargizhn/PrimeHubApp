@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { doc, getDoc, updateDoc } from "firebase/firestore"; 
 import { db } from "../firebase"; // DB erişim hazır olduğunda aktif edebilirsin
-import logo from "../assets/logo6.png";
+import logo from '../assets/prime-logo.png';
 
 // Props: isAdmin (true/false)
 export default function EditVendor({ isAdmin }) {

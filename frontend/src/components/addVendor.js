@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import logo from "../assets/logo6.png";
+import logo from '../assets/prime-logo.png';
 
 export default function AddVendor() {
   const navigate = useNavigate();

@@ -6,6 +6,8 @@ import Profile from "./components/Profile";
 import VendorList from "./components/VendorList";
 import RateVendors from "./components/RateVendors";
 import LoginSignup from "./components/LoginSignup";
+import EditVendor from "./components/EditVendor";
+import AddVendor from "./components/addVendor";
 
 function App() {
   const [user, setUser] = useState(null); 
@@ -16,6 +18,7 @@ function App() {
       setUser(storedUser);
     }
   }, []);
+  const isAdmin = true;
 
   return (
     <Router>
