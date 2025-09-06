@@ -1,19 +1,21 @@
-// Firebase config and connection
+// firebase.js
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyD-YhoXS1pQ4pitiek2KGEJBp1Saidp3xw",
-  authDomain: "vendor-app-59355.firebaseapp.com",
-  projectId: "vendor-app-59355",
-  storageBucket: "vendor-app-59355.firebasestorage.app",
-  messagingSenderId: "130936778559",
-  appId: "1:130936778559:web:c95a56225a291c327bed8a",
-  measurementId: "G-ZNC5TV008H"
+  apiKey: "AIzaSyAyERiX36NxDmLejRVdkpqmsnA_sYhzLDg",
+  authDomain: "primehub-1c5f6.firebaseapp.com",
+  projectId: "primehub-1c5f6",
+  storageBucket: "primehub-1c5f6.firebasestorage.app",
+  messagingSenderId: "905509257688",
+  appId: "1:905509257688:web:453e184bd85d885645b2ad",
+  measurementId: "G-L2BG9EJNPL"
 };
 
+// Firebase app’i başlat
 const app = initializeApp(firebaseConfig);
 
+// Auth ve Firestore export et
 export const auth = getAuth(app);
 export const db = getFirestore(app);
