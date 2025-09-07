@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Camera, Edit2, Save, X, Eye, EyeOff, User, Mail, Calendar } from 'lucide-react';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { db } from '../firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 // Move ProfileField component outside to prevent recreation on every render
 const ProfileField = ({ label, field, value, icon: Icon, type = "text", readOnly = false, 
@@ -68,10 +71,11 @@ const ProfileField = ({ label, field, value, icon: Icon, type = "text", readOnly
 
 export default function UserProfilePage({ email }) {
   const [user, setUser] = useState({
-    firstName: 'Aykhan',
-    lastName: 'Huseynli',
+    firstName: '',
+    lastName: '',
     email: email || '',
-    profileImage: null
+    profileImage: null,
+    joinDate: ''
   });
 
   const [isEditing, setIsEditing] = useState({
@@ -90,6 +94,45 @@ export default function UserProfilePage({ email }) {
     new: false,
     confirm: false
   });
+
+  useEffect(() => {
+    const auth = getAuth();
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (!firebaseUser) return;
+
+      let firstName = '';
+      let lastName = '';
+      let emailAddr = firebaseUser.email || '';
+      let joinDate = '';
+
+      try {
+        const snap = await getDoc(doc(db, 'users', firebaseUser.uid));
+        if (snap.exists()) {
+          const data = snap.data();
+          firstName = data.firstName || firstName;
+          lastName = data.lastName || lastName;
+          joinDate = data.createdAt?.toDate ? data.createdAt.toDate().toLocaleDateString() : '';
+        }
+      } catch (e) {
+        // fallback below
+      }
+
+      if ((!firstName || !lastName) && firebaseUser.displayName) {
+        const parts = firebaseUser.displayName.split(' ');
+        firstName = firstName || parts[0] || '';
+        lastName = lastName || parts.slice(1).join(' ') || '';
+      }
+
+      setUser((prev) => ({
+        ...prev,
+        firstName,
+        lastName,
+        email: email || emailAddr,
+        joinDate
+      }));
+    });
+    return () => unsubscribe();
+  }, [email]);
 
   const handleEdit = (field) => {
     setIsEditing({ ...isEditing, [field]: true });

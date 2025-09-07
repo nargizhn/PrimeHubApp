@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate } from "react-router-dom";  
 import logo from '../assets/prime-logo.png';
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { db } from '../firebase';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 function LoginSignup({ setUser }) {
   const [isSignUp, setIsSignUp] = useState(false);  
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();  
@@ -13,10 +17,30 @@ function LoginSignup({ setUser }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!email || !password) return;
+    if (isSignUp && (!firstName || !lastName)) {
+      alert('Please enter your first and last name.');
+      return;
+    }
 
     try {
       if (isSignUp) {
-        await createUserWithEmailAndPassword(auth, email, password);
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+        try {
+          await updateProfile(user, { displayName: `${firstName} ${lastName}` });
+        } catch (e) {
+          console.warn('Could not set displayName:', e);
+        }
+        try {
+          await setDoc(doc(db, 'users', user.uid), {
+            firstName,
+            lastName,
+            email,
+            createdAt: serverTimestamp()
+          });
+        } catch (e) {
+          console.error('Failed saving user profile:', e);
+        }
         setIsSignUp(false);
       } else {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
@@ -34,6 +58,8 @@ function LoginSignup({ setUser }) {
 
     setEmail('');
     setPassword('');
+    setFirstName('');
+    setLastName('');
   };
 
   return (
@@ -74,6 +100,56 @@ function LoginSignup({ setUser }) {
           {isSignUp ? 'Sign Up' : 'Login'}
         </h2>
         <form onSubmit={handleSubmit}>
+          {isSignUp && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 18 }}>
+              <div>
+                <label style={{ color: '#fff', fontWeight: 500 }}>First Name:</label>
+                <input
+                  type="text"
+                  value={firstName}
+                  onChange={e => setFirstName(e.target.value)}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: 12,
+                    marginTop: 6,
+                    border: '1px solid #ff0000',
+                    borderRadius: 8,
+                    background: '#000',
+                    color: '#fff',
+                    fontSize: 15,
+                    outline: 'none',
+                    transition: '0.3s',
+                  }}
+                  onFocus={(e) => e.target.style.boxShadow = '0 0 10px rgba(255,0,0,0.7)'}
+                  onBlur={(e) => e.target.style.boxShadow = 'none'}
+                />
+              </div>
+              <div>
+                <label style={{ color: '#fff', fontWeight: 500 }}>Last Name:</label>
+                <input
+                  type="text"
+                  value={lastName}
+                  onChange={e => setLastName(e.target.value)}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: 12,
+                    marginTop: 6,
+                    border: '1px solid #ff0000',
+                    borderRadius: 8,
+                    background: '#000',
+                    color: '#fff',
+                    fontSize: 15,
+                    outline: 'none',
+                    transition: '0.3s',
+                  }}
+                  onFocus={(e) => e.target.style.boxShadow = '0 0 10px rgba(255,0,0,0.7)'}
+                  onBlur={(e) => e.target.style.boxShadow = 'none'}
+                />
+              </div>
+            </div>
+          )}
           <div style={{ marginBottom: 18 }}>
             <label style={{ color: '#fff', fontWeight: 500 }}>Email:</label>
             <input 
