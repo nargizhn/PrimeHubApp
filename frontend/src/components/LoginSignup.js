@@ -1,39 +1,94 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from "react-router-dom";  
 import logo from '../assets/prime-logo.png';
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  updateProfile,
+  onIdTokenChanged
+} from "firebase/auth";
 
 function LoginSignup({ setUser }) {
   const [isSignUp, setIsSignUp] = useState(false);  
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();  
   const auth = getAuth();
 
+  // 🔁 Token yenilendikçe otomatik logla (background refresh dahil)
+  useEffect(() => {
+    const unsub = onIdTokenChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const freshToken = await user.getIdToken(); // refresh zorunlu değil burada
+          console.log("🔁 Refreshed ID Token:", freshToken);
+          // İsteyen kolayca kopyalasın diye global'e koy
+          window.__ID_TOKEN__ = freshToken;
+        } catch (e) {
+          console.error("onIdTokenChanged error:", e);
+        }
+      }
+    });
+    return () => unsub();
+  }, [auth]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!email || !password) return;
+    if (!email || !password || (isSignUp && (!firstName || !lastName))) return;
 
     try {
       if (isSignUp) {
-        await createUserWithEmailAndPassword(auth, email, password);
+        // SIGN UP
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        await updateProfile(userCredential.user, {
+          displayName: `${firstName} ${lastName}`
+        });
+
+        // Basit profil bilgisi localStorage
+        localStorage.setItem("userProfile", JSON.stringify({
+          firstName,
+          lastName,
+          email
+        }));
+
         setIsSignUp(false);
+        alert("Account created! Please login.");
       } else {
+        // LOGIN
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
-        const token = await user.getIdToken(true);
-        localStorage.setItem("token", token);
 
-        setUser(user);
+        // 🔥 Her login'de TAZE token al ve console'a bas
+        const token = await user.getIdToken(true);
+        console.log("🔥 ID Token:", token);
+        window.__ID_TOKEN__ = token;              // kolay erişim
+        localStorage.setItem("token", token);     // mevcut akışı bozmayayım diye bırakıyorum
+
+        // Daha önce kaydedilen profili oku
+        const savedProfile = JSON.parse(localStorage.getItem("userProfile")) || {};
+        const [dispFirst = "", dispLast = ""] = (user.displayName || "").split(" ");
+
+        setUser({
+          email: user.email,
+          firstName: savedProfile.firstName || dispFirst,
+          lastName: savedProfile.lastName || dispLast
+        });
+
         navigate("/dashboard");
       }
     } catch (error) {
       console.error("Auth error:", error);
-      alert("Authentication failed. " + error.message);
+      alert("Authentication failed. " + (error?.message || ""));
+    } finally {
+      // Form temizliği
+      setEmail('');
+      setPassword('');
+      setFirstName('');
+      setLastName('');
     }
-
-    setEmail('');
-    setPassword('');
   };
 
   return (
@@ -74,6 +129,50 @@ function LoginSignup({ setUser }) {
           {isSignUp ? 'Sign Up' : 'Login'}
         </h2>
         <form onSubmit={handleSubmit}>
+          {isSignUp && (
+            <>
+              <div style={{ marginBottom: 18 }}>
+                <label style={{ color: '#fff', fontWeight: 500 }}>First Name:</label>
+                <input 
+                  type="text"
+                  value={firstName}
+                  onChange={e => setFirstName(e.target.value)}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: 12,
+                    marginTop: 6,
+                    border: '1px solid #ff0000',
+                    borderRadius: 8,
+                    background: '#000',
+                    color: '#fff',
+                    fontSize: 15,
+                    outline: 'none',
+                  }}
+                />
+              </div>
+              <div style={{ marginBottom: 18 }}>
+                <label style={{ color: '#fff', fontWeight: 500 }}>Last Name:</label>
+                <input 
+                  type="text"
+                  value={lastName}
+                  onChange={e => setLastName(e.target.value)}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: 12,
+                    marginTop: 6,
+                    border: '1px solid #ff0000',
+                    borderRadius: 8,
+                    background: '#000',
+                    color: '#fff',
+                    fontSize: 15,
+                    outline: 'none',
+                  }}
+                />
+              </div>
+            </>
+          )}
           <div style={{ marginBottom: 18 }}>
             <label style={{ color: '#fff', fontWeight: 500 }}>Email:</label>
             <input 
@@ -91,10 +190,7 @@ function LoginSignup({ setUser }) {
                 color: '#fff',
                 fontSize: 15,
                 outline: 'none',
-                transition: '0.3s',
               }}
-              onFocus={(e) => e.target.style.boxShadow = '0 0 10px rgba(255,0,0,0.7)'}
-              onBlur={(e) => e.target.style.boxShadow = 'none'}
             />
           </div>
           <div style={{ marginBottom: 18 }}>
@@ -114,10 +210,7 @@ function LoginSignup({ setUser }) {
                 color: '#fff',
                 fontSize: 15,
                 outline: 'none',
-                transition: '0.3s',
               }}
-              onFocus={(e) => e.target.style.boxShadow = '0 0 10px rgba(255,0,0,0.7)'}
-              onBlur={(e) => e.target.style.boxShadow = 'none'}
             />
           </div>
           <button 
@@ -135,16 +228,6 @@ function LoginSignup({ setUser }) {
               boxShadow: '0 0 12px rgba(255,0,0,0.6)',
               cursor: 'pointer',
               transition: 'all 0.3s ease-in-out'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.transform = 'scale(1.05)';
-              e.target.style.background = 'linear-gradient(90deg,#fff 0%,#ff0000 100%)';
-              e.target.style.color = '#000';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.transform = 'scale(1)';
-              e.target.style.background = 'linear-gradient(90deg,#ff0000 0%,#b30000 100%)';
-              e.target.style.color = '#fff';
             }}
           >
             {isSignUp ? 'Sign Up' : 'Login'}

@@ -17,7 +17,6 @@ const ProfileField = ({ label, field, value, icon: Icon, type = "text", readOnly
           </button>
         )}
       </div>
-      
       {isEditing[field] ? (
         <div>
           {field === 'name' ? (

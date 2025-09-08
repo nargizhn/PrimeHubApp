@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import logo from '../assets/prime-logo.png';
+import logo from "../assets/prime-logo.png";
 import { getAuth } from "firebase/auth";
+import InfoTooltip from "./InfoTooltip";
 
 export default function VendorList({ isAdmin }) {
   const [vendors, setVendors] = useState([]);
@@ -10,29 +11,41 @@ export default function VendorList({ isAdmin }) {
   const auth = getAuth();
 
   const fetchVendors = async () => {
-    const user = auth.currentUser;
-    if (!user) { alert("User not authenticated!"); return; }
-
-    const token = await user.getIdToken(true);
-    console.log("Sending token:", token);
-
     try {
+      const user = auth.currentUser;
+      let token = null;
+
+      if (user) {
+        token = await user.getIdToken(true);
+      } else {
+        token = localStorage.getItem("token");
+      }
+
+      if (!token) {
+        alert("User not authenticated! Please login.");
+        return;
+      }
+
+      console.log("Sending token:", token.slice(0, 16) + "...");
+
       const response = await fetch("http://localhost:9090/api/vendors", {
         headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json"
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
-        credentials: "include" // cookie veya session varsa
       });
 
       if (response.ok) {
         const data = await response.json();
-        setVendors(data);
+        setVendors(Array.isArray(data) ? data : []);
       } else if (response.status === 401) {
         alert("Unauthorized! Please login again.");
       } else {
-        const err = await response.text();
-        alert("Failed to fetch vendors: " + err);
+        const errText = await response.text().catch(() => "");
+        alert(
+          "Failed to fetch vendors: " +
+            (errText || `${response.status} ${response.statusText}`)
+        );
       }
     } catch (err) {
       console.error(err);
@@ -40,68 +53,239 @@ export default function VendorList({ isAdmin }) {
     }
   };
 
-  useEffect(() => { fetchVendors(); }, []);
+  useEffect(() => {
+    fetchVendors();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const filteredVendors = vendors.filter(v =>
-    ["category", "city", "name", "representative"].some(f => v[f]?.toLowerCase().includes(search.toLowerCase()))
+  const normalized = (s) => (s ?? "").toString().toLowerCase();
+  const filteredVendors = vendors.filter((v) =>
+    ["category", "city", "name", "representative"].some((f) =>
+      normalized(v[f]).includes(normalized(search))
+    )
   );
 
   const handleDelete = async (id) => {
-    if(window.confirm("Are you sure you want to delete this vendor?")){
-      const user = auth.currentUser;
-      if (!user) return;
+    if (!window.confirm("Are you sure you want to delete this vendor?")) return;
 
-      const token = await user.getIdToken(true);
-      await fetch(`http://localhost:9090/api/vendors/${id}`, {
+    const user = auth.currentUser;
+    const token = user ? await user.getIdToken(true) : localStorage.getItem("token");
+
+    if (!token) {
+      alert("User not authenticated! Please login.");
+      return;
+    }
+
+    try {
+      const res = await fetch(`http://localhost:9090/api/vendors/${id}`, {
         method: "DELETE",
-        headers: { "Authorization": `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
-      setVendors(vendors.filter(v => v.id !== id));
+
+      if (res.ok || res.status === 204) {
+        setVendors((prev) => prev.filter((v) => v.id !== id));
+      } else {
+        const t = await res.text().catch(() => "");
+        alert(
+          "Failed to delete vendor: " + (t || `${res.status} ${res.statusText}`)
+        );
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Network error or server not reachable.");
     }
   };
 
+  // isAdmin true ise ekstra "Price" kolonu var
+  const columnCount = 7 + (isAdmin ? 1 : 0);
+
+  // Basit buton stilleri
+  const btn = {
+    base: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 8,
+      padding: "8px 12px",
+      borderRadius: 10,
+      border: "1px solid #e5e7eb",
+      background: "#fff",
+      cursor: "pointer",
+      fontSize: 14,
+      fontWeight: 600,
+      boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+    },
+    edit: { color: "#1f2937" },
+    del: { color: "#991b1b", borderColor: "#fecaca", background: "#fff5f5" },
+  };
+
   return (
-    <div style={{ padding: 30, fontFamily: "Segoe UI, sans-serif", minHeight: "100vh", backgroundColor: "#f9f9f9" }}>
-      <h1 style={{ marginBottom: 20, color: "#000", fontSize: "2rem", fontWeight: "bold", display: "flex", alignItems: "center", gap: 10 }}>
-        <img src={logo} alt="Logo" style={{ height: 40 }} /> Vendor <span style={{ color: "#d90000" }}>List</span>
+    <div
+      style={{
+        padding: 30,
+        fontFamily: "Segoe UI, sans-serif",
+        minHeight: "100vh",
+        backgroundColor: "#f9f9f9",
+      }}
+    >
+      <h1
+        style={{
+          marginBottom: 20,
+          color: "#000",
+          fontSize: "2rem",
+          fontWeight: "bold",
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+        }}
+      >
+        <img src={logo} alt="Logo" style={{ height: 40 }} /> Vendor{" "}
+        <span style={{ color: "#d90000" }}>List</span>
       </h1>
 
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
-        <input type="text" placeholder="Search by Name, City or Category" value={search} onChange={e => setSearch(e.target.value)} style={{ padding: 10, width: "60%", borderRadius: 6, border: "1px solid #ccc", fontSize: 16 }} />
-        <button style={{ backgroundColor: "#d90000", color: "#fff", padding: "10px 20px", borderRadius: 6, border: "none", cursor: "pointer" }} onClick={() => navigate("/add-vendor")}>➕ Add Vendor</button>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          marginBottom: 20,
+          gap: 12,
+          flexWrap: "wrap",
+        }}
+      >
+        <input
+          type="text"
+          placeholder="Search by Name, City or Category"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{
+            padding: 10,
+            minWidth: 260,
+            flex: "1 1 300px",
+            borderRadius: 8,
+            border: "1px solid #e5e7eb",
+            fontSize: 16,
+            background: "#fff",
+          }}
+        />
+        <button
+          style={{
+            padding: "10px 16px",
+            borderRadius: 10,
+            border: "none",
+            background:
+              "linear-gradient(90deg, rgba(217,0,0,1) 0%, rgba(179,0,0,1) 100%)",
+            color: "#fff",
+            cursor: "pointer",
+            fontSize: 15,
+            fontWeight: 700,
+            boxShadow: "0 6px 14px rgba(217,0,0,0.18)",
+          }}
+          onClick={() => navigate("/add-vendor")}
+        >
+          ➕ Add Vendor
+        </button>
       </div>
 
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
-        <thead>
-          <tr style={{ backgroundColor: "#d90000", color: "#fff", textAlign: "left" }}>
-            <th style={{ padding: 10 }}>Category</th>
-            <th style={{ padding: 10 }}>City</th>
-            <th style={{ padding: 10 }}>Representative</th>
-            <th style={{ padding: 10 }}>Name</th>
-            <th style={{ padding: 10 }}>Contact</th>
-            <th style={{ padding: 10 }}>⭐ Rating</th>
-            {isAdmin && <th style={{ padding: 10 }}>💰 Price</th>}
-            <th style={{ padding: 10 }}>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filteredVendors.map(v => (
-            <tr key={v.id} style={{ borderBottom: "1px solid #ccc", cursor: "pointer" }}>
-              <td style={{ padding: 10 }}>{v.category}</td>
-              <td style={{ padding: 10 }}>{v.city}</td>
-              <td style={{ padding: 10 }}>{v.representative}</td>
-              <td style={{ padding: 10 }}>{v.name}</td>
-              <td style={{ padding: 10 }}>{v.contact}</td>
-              <td style={{ padding: 10 }}>{v.rating || ""}</td>
-              {isAdmin && <td style={{ padding: 10 }}>{v.price}</td>}
-              <td style={{ padding: 10 }}>
-                <button onClick={() => navigate(`/edit-vendor/${v.id}`)} style={{ marginRight: 10 }}>✏️ Edit</button>
-                <button onClick={() => handleDelete(v.id)}>🗑️ Delete</button>
-              </td>
+      <div
+        style={{
+          background: "#fff",
+          borderRadius: 12,
+          boxShadow: "0 6px 14px rgba(0,0,0,0.06)",
+          overflow: "hidden",
+        }}
+      >
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr
+              style={{
+                backgroundColor: "#d90000",
+                color: "#fff",
+                textAlign: "left",
+              }}
+            >
+              <th style={{ padding: 12 }}>Category</th>
+              <th style={{ padding: 12 }}>City</th>
+              <th style={{ padding: 12 }}>Representative</th>
+              <th style={{ padding: 12 }}>Name</th>
+              <th style={{ padding: 12 }}>Contact</th>
+              <th style={{ padding: 12 }}>⭐ Rating</th>
+              {isAdmin && <th style={{ padding: 12 }}>💰 Price</th>}
+              <th style={{ padding: 12, width: 260 }}>Actions</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {vendors.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={columnCount}
+                  style={{ padding: 16, textAlign: "center", color: "#666" }}
+                >
+                  No vendors found
+                </td>
+              </tr>
+            ) : filteredVendors.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={columnCount}
+                  style={{ padding: 16, textAlign: "center", color: "#666" }}
+                >
+                  No vendors match your search
+                </td>
+              </tr>
+            ) : (
+              filteredVendors.map((v) => (
+                <tr
+                  key={v.id ?? `${v.name}-${v.email ?? ""}`}
+                  style={{ borderBottom: "1px solid #f3f4f6" }}
+                >
+                  <td style={{ padding: 12 }}>{v.category}</td>
+                  <td style={{ padding: 12 }}>{v.city}</td>
+                  <td style={{ padding: 12 }}>{v.representative}</td>
+                  <td style={{ padding: 12 }}>{v.name}</td>
+                  <td style={{ padding: 12 }}>{v.contact}</td>
+                  <td style={{ padding: 12 }}>{v.rating ?? ""}</td>
+                  {isAdmin && <td style={{ padding: 12 }}>{v.price ?? ""}</td>}
+                  <td style={{ padding: 12 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      {/* INFO tooltip — buton üstünde görünür, portal ile body'e çizilir */}
+                      <InfoTooltip
+                        label="ℹ️ Info"
+                        rows={[
+                          ["Agreement #", v.agreementNumber],
+                          ["Bank Account", v.bankAccount],
+                          ...(v.notes ? [["Notes", v.notes]] : []),
+                        ]}
+                      />
+
+                      {/* EDIT */}
+                      <button
+                        onClick={() => navigate(`/edit-vendor/${v.id}`)}
+                        style={{ ...btn.base, ...btn.edit }}
+                      >
+                        ✏️ Edit
+                      </button>
+
+                      {/* DELETE */}
+                      <button
+                        onClick={() => handleDelete(v.id)}
+                        style={{ ...btn.base, ...btn.del }}
+                      >
+                        🗑️ Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
