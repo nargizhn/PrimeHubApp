@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Camera, Edit2, Save, X, Eye, EyeOff, User, Mail, Calendar } from 'lucide-react';
+import { getAuth, onAuthStateChanged, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
+import { db } from '../firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 // Move ProfileField component outside to prevent recreation on every render
 const ProfileField = ({ label, field, value, icon: Icon, type = "text", readOnly = false, 
@@ -67,10 +70,11 @@ const ProfileField = ({ label, field, value, icon: Icon, type = "text", readOnly
 
 export default function UserProfilePage({ email }) {
   const [user, setUser] = useState({
-    firstName: 'Aykhan',
-    lastName: 'Huseynli',
+    firstName: '',
+    lastName: '',
     email: email || '',
-    profileImage: null
+    profileImage: null,
+    joinDate: ''
   });
 
   const [isEditing, setIsEditing] = useState({
@@ -89,6 +93,45 @@ export default function UserProfilePage({ email }) {
     new: false,
     confirm: false
   });
+
+  useEffect(() => {
+    const auth = getAuth();
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (!firebaseUser) return;
+
+      let firstName = '';
+      let lastName = '';
+      let emailAddr = firebaseUser.email || '';
+      let joinDate = '';
+
+      try {
+        const snap = await getDoc(doc(db, 'users', firebaseUser.uid));
+        if (snap.exists()) {
+          const data = snap.data();
+          firstName = data.firstName || firstName;
+          lastName = data.lastName || lastName;
+          joinDate = data.createdAt?.toDate ? data.createdAt.toDate().toLocaleDateString() : '';
+        }
+      } catch (e) {
+        // fallback below
+      }
+
+      if ((!firstName || !lastName) && firebaseUser.displayName) {
+        const parts = firebaseUser.displayName.split(' ');
+        firstName = firstName || parts[0] || '';
+        lastName = lastName || parts.slice(1).join(' ') || '';
+      }
+
+      setUser((prev) => ({
+        ...prev,
+        firstName,
+        lastName,
+        email: email || emailAddr,
+        joinDate
+      }));
+    });
+    return () => unsubscribe();
+  }, [email]);
 
   const handleEdit = (field) => {
     setIsEditing({ ...isEditing, [field]: true });
@@ -123,7 +166,7 @@ export default function UserProfilePage({ email }) {
     }
   };
 
-  const handlePasswordChange = () => {
+  const handlePasswordChange = async () => {
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       alert('New passwords do not match!');
       return;
@@ -132,13 +175,50 @@ export default function UserProfilePage({ email }) {
       alert('Password must be at least 6 characters long!');
       return;
     }
-    alert('Password changed successfully!');
-    setPasswordData({
-      currentPassword: '',
-      newPassword: '',
-      confirmPassword: ''
-    });
-    setShowPasswordForm(false);
+
+    const auth = getAuth();
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      alert('You must be signed in to change your password.');
+      return;
+    }
+
+    try {
+      const credential = EmailAuthProvider.credential(
+        currentUser.email || user.email,
+        passwordData.currentPassword
+      );
+
+      await reauthenticateWithCredential(currentUser, credential);
+      await updatePassword(currentUser, passwordData.newPassword);
+
+      alert('Password changed successfully!');
+      setPasswordData({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      });
+      setShowPasswordForm(false);
+    } catch (error) {
+      let message = 'Failed to change password.';
+      switch (error.code) {
+        case 'auth/wrong-password':
+          message = 'Current password is incorrect.';
+          break;
+        case 'auth/weak-password':
+          message = 'New password is too weak. Use at least 6 characters.';
+          break;
+        case 'auth/too-many-requests':
+          message = 'Too many attempts. Please try again later.';
+          break;
+        case 'auth/requires-recent-login':
+          message = 'Please log in again and retry changing your password.';
+          break;
+        default:
+          message = error.message || message;
+      }
+      alert(message);
+    }
   };
 
   const styles = {

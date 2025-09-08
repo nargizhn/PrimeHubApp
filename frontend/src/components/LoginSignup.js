@@ -1,13 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from "react-router-dom";  
 import logo from '../assets/prime-logo.png';
-import {
-  getAuth,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  updateProfile,
-  onIdTokenChanged
-} from "firebase/auth";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
 
 function LoginSignup({ setUser }) {
   const [isSignUp, setIsSignUp] = useState(false);  
@@ -37,23 +31,11 @@ function LoginSignup({ setUser }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!email || !password || (isSignUp && (!firstName || !lastName))) return;
+    if (!email || !password) return;
 
     try {
       if (isSignUp) {
-        // SIGN UP
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        await updateProfile(userCredential.user, {
-          displayName: `${firstName} ${lastName}`
-        });
-
-        // Basit profil bilgisi localStorage
-        localStorage.setItem("userProfile", JSON.stringify({
-          firstName,
-          lastName,
-          email
-        }));
-
+        await createUserWithEmailAndPassword(auth, email, password);
         setIsSignUp(false);
         alert("Account created! Please login.");
       } else {
@@ -81,14 +63,11 @@ function LoginSignup({ setUser }) {
       }
     } catch (error) {
       console.error("Auth error:", error);
-      alert("Authentication failed. " + (error?.message || ""));
-    } finally {
-      // Form temizliği
-      setEmail('');
-      setPassword('');
-      setFirstName('');
-      setLastName('');
+      alert("Authentication failed. " + error.message);
     }
+
+    setEmail('');
+    setPassword('');
   };
 
   return (
@@ -129,50 +108,6 @@ function LoginSignup({ setUser }) {
           {isSignUp ? 'Sign Up' : 'Login'}
         </h2>
         <form onSubmit={handleSubmit}>
-          {isSignUp && (
-            <>
-              <div style={{ marginBottom: 18 }}>
-                <label style={{ color: '#fff', fontWeight: 500 }}>First Name:</label>
-                <input 
-                  type="text"
-                  value={firstName}
-                  onChange={e => setFirstName(e.target.value)}
-                  required
-                  style={{
-                    width: '100%',
-                    padding: 12,
-                    marginTop: 6,
-                    border: '1px solid #ff0000',
-                    borderRadius: 8,
-                    background: '#000',
-                    color: '#fff',
-                    fontSize: 15,
-                    outline: 'none',
-                  }}
-                />
-              </div>
-              <div style={{ marginBottom: 18 }}>
-                <label style={{ color: '#fff', fontWeight: 500 }}>Last Name:</label>
-                <input 
-                  type="text"
-                  value={lastName}
-                  onChange={e => setLastName(e.target.value)}
-                  required
-                  style={{
-                    width: '100%',
-                    padding: 12,
-                    marginTop: 6,
-                    border: '1px solid #ff0000',
-                    borderRadius: 8,
-                    background: '#000',
-                    color: '#fff',
-                    fontSize: 15,
-                    outline: 'none',
-                  }}
-                />
-              </div>
-            </>
-          )}
           <div style={{ marginBottom: 18 }}>
             <label style={{ color: '#fff', fontWeight: 500 }}>Email:</label>
             <input 
