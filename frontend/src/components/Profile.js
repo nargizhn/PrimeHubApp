@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Camera, Edit2, Save, X, Eye, EyeOff, User, Mail, Calendar } from 'lucide-react';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { getAuth, onAuthStateChanged, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { db } from '../firebase';
 import { doc, getDoc } from 'firebase/firestore';
 
@@ -167,7 +167,7 @@ export default function UserProfilePage({ email }) {
     }
   };
 
-  const handlePasswordChange = () => {
+  const handlePasswordChange = async () => {
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       alert('New passwords do not match!');
       return;
@@ -176,13 +176,50 @@ export default function UserProfilePage({ email }) {
       alert('Password must be at least 6 characters long!');
       return;
     }
-    alert('Password changed successfully!');
-    setPasswordData({
-      currentPassword: '',
-      newPassword: '',
-      confirmPassword: ''
-    });
-    setShowPasswordForm(false);
+
+    const auth = getAuth();
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      alert('You must be signed in to change your password.');
+      return;
+    }
+
+    try {
+      const credential = EmailAuthProvider.credential(
+        currentUser.email || user.email,
+        passwordData.currentPassword
+      );
+
+      await reauthenticateWithCredential(currentUser, credential);
+      await updatePassword(currentUser, passwordData.newPassword);
+
+      alert('Password changed successfully!');
+      setPasswordData({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      });
+      setShowPasswordForm(false);
+    } catch (error) {
+      let message = 'Failed to change password.';
+      switch (error.code) {
+        case 'auth/wrong-password':
+          message = 'Current password is incorrect.';
+          break;
+        case 'auth/weak-password':
+          message = 'New password is too weak. Use at least 6 characters.';
+          break;
+        case 'auth/too-many-requests':
+          message = 'Too many attempts. Please try again later.';
+          break;
+        case 'auth/requires-recent-login':
+          message = 'Please log in again and retry changing your password.';
+          break;
+        default:
+          message = error.message || message;
+      }
+      alert(message);
+    }
   };
 
   const styles = {
