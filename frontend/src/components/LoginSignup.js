@@ -1,29 +1,31 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from "react-router-dom";  
+import { useNavigate } from "react-router-dom";
 import logo from '../assets/prime-logo.png';
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
+import {
+  getAuth,
+  onIdTokenChanged,           // ✅ EKLENDİ
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+} from "firebase/auth";
 
 function LoginSignup({ setUser }) {
-  const [isSignUp, setIsSignUp] = useState(false);  
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
-  const navigate = useNavigate();  
+  const navigate = useNavigate();
   const auth = getAuth();
 
   // 🔁 Token yenilendikçe otomatik logla (background refresh dahil)
   useEffect(() => {
     const unsub = onIdTokenChanged(auth, async (user) => {
-      if (user) {
-        try {
-          const freshToken = await user.getIdToken(); // refresh zorunlu değil burada
-          console.log("🔁 Refreshed ID Token:", freshToken);
-          // İsteyen kolayca kopyalasın diye global'e koy
-          window.__ID_TOKEN__ = freshToken;
-        } catch (e) {
-          console.error("onIdTokenChanged error:", e);
-        }
+      if (!user) return;
+      try {
+        const freshToken = await user.getIdToken(); // refresh zorunlu değil
+        console.log("🔁 Refreshed ID Token:", freshToken);
+        window.__ID_TOKEN__ = freshToken;          // kolay kopyalama için
+        localStorage.setItem("token", freshToken); // backend çağrıları için
+      } catch (e) {
+        console.error("onIdTokenChanged error:", e);
       }
     });
     return () => unsub();
@@ -40,23 +42,20 @@ function LoginSignup({ setUser }) {
         alert("Account created! Please login.");
       } else {
         // LOGIN
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
+        const { user } = await signInWithEmailAndPassword(auth, email, password);
 
         // 🔥 Her login'de TAZE token al ve console'a bas
         const token = await user.getIdToken(true);
         console.log("🔥 ID Token:", token);
-        window.__ID_TOKEN__ = token;              // kolay erişim
-        localStorage.setItem("token", token);     // mevcut akışı bozmayayım diye bırakıyorum
+        window.__ID_TOKEN__ = token;
+        localStorage.setItem("token", token);
 
-        // Daha önce kaydedilen profili oku
-        const savedProfile = JSON.parse(localStorage.getItem("userProfile")) || {};
+        // Basit profil set'i (displayName yoksa boş bırak)
         const [dispFirst = "", dispLast = ""] = (user.displayName || "").split(" ");
-
         setUser({
           email: user.email,
-          firstName: savedProfile.firstName || dispFirst,
-          lastName: savedProfile.lastName || dispLast
+          firstName: dispFirst,
+          lastName: dispLast
         });
 
         navigate("/dashboard");
@@ -64,10 +63,10 @@ function LoginSignup({ setUser }) {
     } catch (error) {
       console.error("Auth error:", error);
       alert("Authentication failed. " + error.message);
+    } finally {
+      setEmail('');
+      setPassword('');
     }
-
-    setEmail('');
-    setPassword('');
   };
 
   return (
@@ -110,7 +109,7 @@ function LoginSignup({ setUser }) {
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: 18 }}>
             <label style={{ color: '#fff', fontWeight: 500 }}>Email:</label>
-            <input 
+            <input
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
@@ -130,7 +129,7 @@ function LoginSignup({ setUser }) {
           </div>
           <div style={{ marginBottom: 18 }}>
             <label style={{ color: '#fff', fontWeight: 500 }}>Password:</label>
-            <input 
+            <input
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
@@ -148,7 +147,7 @@ function LoginSignup({ setUser }) {
               }}
             />
           </div>
-          <button 
+          <button
             type="submit"
             style={{
               width: '100%',
@@ -172,7 +171,7 @@ function LoginSignup({ setUser }) {
           <span style={{ color: '#fff' }}>
             {isSignUp ? 'Already have an account?' : "Don't have an account?"}
           </span>
-          <button 
+          <button
             onClick={() => { setIsSignUp(!isSignUp); setEmail(''); setPassword(''); }}
             style={{
               marginLeft: 8,
