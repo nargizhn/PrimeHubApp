@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Camera, Edit2, Save, X, Eye, EyeOff, User, Mail, Calendar } from 'lucide-react';
 import { getAuth, onAuthStateChanged, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { db } from '../firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 // Move ProfileField component outside to prevent recreation on every render
 const ProfileField = ({ label, field, value, icon: Icon, type = "text", readOnly = false, 
@@ -138,16 +138,53 @@ export default function UserProfilePage({ email }) {
     setTempData({ ...tempData, [field]: user[field] });
   };
 
-  const handleSave = (field) => {
+  const handleSave = async (field) => {
     if (field === 'name') {
-      setUser({ 
-        ...user, 
-        firstName: tempData.firstName !== undefined ? tempData.firstName : user.firstName,
-        lastName: tempData.lastName !== undefined ? tempData.lastName : user.lastName
+      const newFirstName = tempData.firstName !== undefined ? tempData.firstName : user.firstName;
+      const newLastName = tempData.lastName !== undefined ? tempData.lastName : user.lastName;
+
+      setUser({
+        ...user,
+        firstName: newFirstName,
+        lastName: newLastName
       });
+
+      try {
+        const auth = getAuth();
+        const currentUser = auth.currentUser;
+        if (currentUser) {
+          const userRef = doc(db, 'users', currentUser.uid);
+          await setDoc(userRef, { firstName: newFirstName, lastName: newLastName }, { merge: true });
+        }
+      } catch (e) {
+        // Optionally surface error to user
+        console.error('Failed to save name to Firestore', e);
+        alert('Failed to save name changes. Please try again.');
+      }
     }
     setIsEditing({ ...isEditing, [field]: false });
     setTempData({ ...tempData, [field]: undefined });
+  };
+
+  const handleSaveAll = async () => {
+    const auth = getAuth();
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
+
+    const newFirstName = isEditing.name && tempData.firstName !== undefined ? tempData.firstName : user.firstName;
+    const newLastName = isEditing.name && tempData.lastName !== undefined ? tempData.lastName : user.lastName;
+
+    try {
+      const userRef = doc(db, 'users', currentUser.uid);
+      await setDoc(userRef, { firstName: newFirstName, lastName: newLastName }, { merge: true });
+      setUser({ ...user, firstName: newFirstName, lastName: newLastName });
+      setIsEditing({ ...isEditing, name: false });
+      setTempData({ ...tempData, name: undefined, firstName: undefined, lastName: undefined });
+      alert('Changes saved successfully.');
+    } catch (e) {
+      console.error('Failed to save changes', e);
+      alert('Failed to save changes. Please try again.');
+    }
   };
 
   const handleCancel = (field) => {
@@ -676,7 +713,7 @@ export default function UserProfilePage({ email }) {
             </div>
 
             <div style={styles.footer}>
-              <button style={styles.saveAllButton}>Save All Changes</button>
+              <button onClick={handleSaveAll} style={styles.saveAllButton}>Save All Changes</button>
             </div>
           </div>
         </div>
