@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Camera, Edit2, Save, X, Eye, EyeOff, User, Mail, Calendar } from 'lucide-react';
+import { Camera, Edit2, Save, X, Eye, EyeOff, User, Mail, Calendar, ArrowLeft } from 'lucide-react';
 import { getAuth, onAuthStateChanged, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
-import { db } from '../firebase';
+import { db, storage } from '../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { useNavigate } from 'react-router-dom';
 
 // Move ProfileField component outside to prevent recreation on every render
 const ProfileField = ({ label, field, value, icon: Icon, type = "text", readOnly = false, 
@@ -69,11 +71,13 @@ const ProfileField = ({ label, field, value, icon: Icon, type = "text", readOnly
 };
 
 export default function UserProfilePage({ email }) {
+  const navigate = useNavigate();
   const [user, setUser] = useState({
     firstName: '',
     lastName: '',
     email: email || '',
     profileImage: null,
+    profileImageUrl: null,
     joinDate: ''
   });
 
@@ -93,6 +97,7 @@ export default function UserProfilePage({ email }) {
     new: false,
     confirm: false
   });
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     const auth = getAuth();
@@ -111,6 +116,11 @@ export default function UserProfilePage({ email }) {
           firstName = data.firstName || firstName;
           lastName = data.lastName || lastName;
           joinDate = data.createdAt?.toDate ? data.createdAt.toDate().toLocaleDateString() : '';
+          
+          // Load profile image URL if it exists
+          if (data.profileImageUrl) {
+            setUser(prev => ({ ...prev, profileImageUrl: data.profileImageUrl }));
+          }
         }
       } catch (e) {
         // fallback below
@@ -192,14 +202,65 @@ export default function UserProfilePage({ email }) {
     setTempData({ ...tempData, [field]: undefined });
   };
 
-  const handleImageUpload = (event) => {
+  const handleImageUpload = async (event) => {
     const file = event.target.files[0];
-    if (file) {
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image size must be less than 5MB');
+      return;
+    }
+
+    setUploading(true);
+    
+    try {
+      const auth = getAuth();
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        alert('You must be signed in to upload a profile picture');
+        return;
+      }
+
+      // Create a reference to the file in Firebase Storage
+      const imageRef = ref(storage, `profile-images/${currentUser.uid}`);
+      
+      // Delete existing image if it exists
+      try {
+        await deleteObject(imageRef);
+      } catch (error) {
+        // Ignore error if file doesn't exist
+      }
+
+      // Upload the new image
+      const snapshot = await uploadBytes(imageRef, file);
+      
+      // Get the download URL
+      const downloadURL = await getDownloadURL(snapshot.ref);
+      
+      // Update user state with both local preview and URL
       const reader = new FileReader();
       reader.onload = (e) => {
-        setUser({ ...user, profileImage: e.target.result });
+        setUser({ ...user, profileImage: e.target.result, profileImageUrl: downloadURL });
       };
       reader.readAsDataURL(file);
+      
+      // Save the URL to Firestore
+      const userRef = doc(db, 'users', currentUser.uid);
+      await setDoc(userRef, { profileImageUrl: downloadURL }, { merge: true });
+      
+      alert('Profile picture updated successfully!');
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      alert('Failed to upload profile picture. Please try again.');
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -281,6 +342,26 @@ export default function UserProfilePage({ email }) {
       padding: '32px 24px',
       color: '#fff'
     },
+    headerContent: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '16px'
+    },
+    backButton: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      color: '#fff',
+      border: '1px solid rgba(255, 255, 255, 0.2)',
+      padding: '8px 16px',
+      borderRadius: '6px',
+      cursor: 'pointer',
+      fontSize: '14px',
+      fontWeight: '500',
+      transition: 'all 0.2s',
+      alignSelf: 'flex-start'
+    },
     headerTitle: {
       fontSize: '32px',
       fontWeight: 'bold',
@@ -343,7 +424,10 @@ export default function UserProfilePage({ email }) {
       cursor: 'pointer',
       border: 'none',
       boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-      transition: 'background-color 0.2s'
+      transition: 'all 0.2s',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
     },
     hiddenInput: {
       display: 'none'
@@ -552,11 +636,27 @@ export default function UserProfilePage({ email }) {
 
   return (
     <div style={styles.container}>
+      <style>
+        {`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}
+      </style>
       <div style={styles.wrapper}>
         <div style={styles.card}>
           <div style={styles.header}>
-            <h1 style={styles.headerTitle}>Profile Settings</h1>
-            <p style={styles.headerSubtitle}>Manage your account information and preferences</p>
+            <div style={styles.headerContent}>
+              <button onClick={() => navigate('/dashboard')} style={styles.backButton}>
+                <ArrowLeft size={20} />
+                Back to Dashboard
+              </button>
+              <div>
+                <h1 style={styles.headerTitle}>Profile Settings</h1>
+                <p style={styles.headerSubtitle}>Manage your account information and preferences</p>
+              </div>
+            </div>
           </div>
 
           <div style={styles.content}>
@@ -564,25 +664,30 @@ export default function UserProfilePage({ email }) {
               <div style={styles.profileImageContainer}>
                 <div style={styles.avatarWrapper}>
                   <div style={styles.avatar}>
-                    {user.profileImage ? (
-                      <img src={user.profileImage} alt="Profile" style={styles.avatarImage} />
+                    {user.profileImageUrl || user.profileImage ? (
+                      <img src={user.profileImageUrl || user.profileImage} alt="Profile" style={styles.avatarImage} />
                     ) : (
                       <div style={styles.avatarPlaceholder}>
                         <User size={64} />
                       </div>
                     )}
                   </div>
-                  <label style={styles.uploadButton}>
-                    <Camera size={16} />
+                  <label style={{...styles.uploadButton, opacity: uploading ? 0.5 : 1, cursor: uploading ? 'not-allowed' : 'pointer'}}>
+                    {uploading ? (
+                      <div style={{width: '16px', height: '16px', border: '2px solid #fff', borderTop: '2px solid transparent', borderRadius: '50%', animation: 'spin 1s linear infinite'}}></div>
+                    ) : (
+                      <Camera size={16} />
+                    )}
                     <input
                       type="file"
                       accept="image/*"
                       onChange={handleImageUpload}
                       style={styles.hiddenInput}
+                      disabled={uploading}
                     />
                   </label>
                 </div>
-                <p style={styles.uploadText}>Click camera icon to upload</p>
+                <p style={styles.uploadText}>{uploading ? 'Uploading...' : 'Click camera icon to upload'}</p>
               </div>
 
               <div style={styles.welcomeSection}>
@@ -708,7 +813,7 @@ export default function UserProfilePage({ email }) {
               )}
 
               {!showPasswordForm && (
-                <p style={styles.passwordDescription}>Keep your account secure with a strong password. Last changed: Never</p>
+                <p style={styles.passwordDescription}>Keep your account secure with a strong password.</p>
               )}
             </div>
 
