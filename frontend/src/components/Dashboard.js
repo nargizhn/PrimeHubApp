@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { auth } from "../firebase";
+// import { auth } from "../firebase"; // kullanılmıyor
+import { getAuth } from "firebase/auth";
 import logo from "../assets/prime-logo.png";
 import { FaUser, FaList, FaStar } from "react-icons/fa";
 
@@ -13,15 +14,19 @@ const photos = [photo1, photo2, photo3];
 const Dashboard = ({ setUser }) => {
   const navigate = useNavigate();
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [metrics, setMetrics] = useState({
+    total: 0,
+    pendingRatings: 0,
+    newRequests: 0, // heuristic: agreementNumber boş olanlar
+  });
 
   const handleLogout = () => {
-    localStorage.removeItem("loggedInUser"); // clear fake auth
-    setUser(null); 
-    navigate("/"); // redirect to login
-};
+    localStorage.removeItem("loggedInUser"); // mevcut akışa dokunma
+    setUser(null);
+    navigate("/"); // login'e dön
+  };
 
-
-
+  // Carousel
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % photos.length);
@@ -29,16 +34,61 @@ const Dashboard = ({ setUser }) => {
     return () => clearInterval(interval);
   }, []);
 
-  //   // Auth check
-  // React.useEffect(() => {
-  //   const unsubscribe = auth.onAuthStateChanged((user) => {
-  //     if (!user) {
-  //       navigate("/login");
-  //     }
-  //   });
-  //   return () => unsubscribe();
-  // }, [navigate]);
+  // Metrikleri çek
+  const fetchMetrics = async () => {
+    try {
+      const auth = getAuth();
+      const fbUser = auth.currentUser;
+      const token = fbUser ? await fbUser.getIdToken(true) : localStorage.getItem("token");
+      if (!token) {
+        // login akışınıza göre burayı değiştirebilirsiniz
+        console.warn("No auth token, metrics will stay at 0.");
+        return;
+      }
 
+      const res = await fetch("http://localhost:9090/api/vendors", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!res.ok) {
+        if (res.status === 401) {
+          console.warn("Unauthorized while fetching metrics.");
+          return;
+        }
+        const t = await res.text().catch(() => "");
+        console.error("Failed to fetch vendors:", t || `${res.status} ${res.statusText}`);
+        return;
+      }
+
+      const list = await res.json();
+      const vendors = Array.isArray(list) ? list : [];
+
+      const total = vendors.length;
+
+      // Pending = rating alanı boş/undefined/NaN olanlar
+      const pendingRatings = vendors.filter(
+        (v) => v == null || v.rating == null || Number.isNaN(Number(v.rating))
+      ).length;
+
+      // New Requests (heuristic) = agreementNumber boş olanlar
+      const newRequests = vendors.filter(
+        (v) => !v?.agreementNumber || String(v.agreementNumber).trim() === ""
+      ).length;
+
+      setMetrics({ total, pendingRatings, newRequests });
+    } catch (e) {
+      console.error(e);
+      // Tasarıma dokunmamak adına alert koymuyoruz
+    }
+  };
+
+  useEffect(() => {
+    fetchMetrics();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div style={styles.container}>
@@ -61,51 +111,51 @@ const Dashboard = ({ setUser }) => {
           <div style={styles.navItem} onClick={handleLogout}>
             🚪 Logout
           </div>
-
         </nav>
       </aside>
-          <main style={styles.main}>
-      <h1 style={styles.heading}>Welcome Back 👋</h1>
-      <p style={styles.subheading}>Here’s what’s happening with vendors today.</p>
-      
-      <div style={styles.contentContainer}>
-        {/* Carousel */}
-        <div style={styles.carousel}>
-          <h2 style={{ marginBottom: 5 }}>Recent Events</h2>
-            <div style={styles.carouselBox}>
-  {photos.map((photo, index) => (
-    <img
-      key={index}
-      src={photo}
-      alt={`Event ${index + 1}`}
-      style={{
-        ...styles.carouselImage,
-        opacity: index === currentIndex ? 1 : 0,
-        position: "absolute",
-        transition: "opacity 1s ease-in-out",
-      }}
-    />
-  ))}
-</div>
 
+      <main style={styles.main}>
+        <h1 style={styles.heading}>Welcome Back 👋</h1>
+        <p style={styles.subheading}>Here’s what’s happening with vendors today.</p>
+
+        <div style={styles.contentContainer}>
+          {/* Carousel */}
+          <div style={styles.carousel}>
+            <h2 style={{ marginBottom: 5 }}>Recent Events</h2>
+            <div style={styles.carouselBox}>
+              {photos.map((photo, index) => (
+                <img
+                  key={index}
+                  src={photo}
+                  alt={`Event ${index + 1}`}
+                  style={{
+                    ...styles.carouselImage,
+                    opacity: index === currentIndex ? 1 : 0,
+                    position: "absolute",
+                    transition: "opacity 1s ease-in-out",
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Cards */}
+          <div style={styles.grid}>
+            <div style={styles.card}>
+              <h3>Total Vendors</h3>
+              <p>{metrics.total}</p>
+            </div>
+            <div style={styles.card}>
+              <h3>Pending Ratings</h3>
+              <p>{metrics.pendingRatings}</p>
+            </div>
+            <div style={styles.card}>
+              <h3>New Requests</h3>
+              <p>{metrics.newRequests}</p>
+            </div>
+          </div>
         </div>
-        {/* Cards */}
-        <div style={styles.grid}>
-          <div style={styles.card}>
-            <h3>Total Vendors</h3>
-            <p>248</p>
-          </div>
-          <div style={styles.card}>
-            <h3>Pending Ratings</h3>
-            <p>37</p>
-          </div>
-          <div style={styles.card}>
-            <h3>New Requests</h3>
-            <p>12</p>
-          </div>
-        </div>
-      </div>
-    </main>
+      </main>
     </div>
   );
 };
@@ -116,7 +166,7 @@ const styles = {
     height: "100vh",
     fontFamily: "Segoe UI, sans-serif",
     backgroundColor: "#f5f5f5",
-    color: "#1c1c1c"
+    color: "#1c1c1c",
   },
   sidebar: {
     width: "250px",
@@ -124,13 +174,14 @@ const styles = {
     color: "#fff",
     display: "flex",
     flexDirection: "column",
-    padding: "30px 20px"
+    padding: "30px 20px",
   },
   logoContainer: {
     display: "flex",
     alignItems: "center",
-    height: "150px",  
-    width: "100px",  
+    height: "150px",
+    width: "100px",
+    gap: 10,
   },
   logo: {
     height: "100px",
@@ -157,9 +208,9 @@ const styles = {
     marginRight: "10px",
   },
   main: {
-    flex: 1,               
-    height: "100vh",       
-    overflowY: "auto",     
+    flex: 1,
+    height: "100vh",
+    overflowY: "auto",
     padding: "40px 60px",
     boxSizing: "border-box",
     backgroundColor: "#fff",
@@ -173,6 +224,7 @@ const styles = {
     color: "#666",
     marginBottom: "40px",
   },
+  contentContainer: {},
   grid: {
     display: "flex",
     gap: "30px",
@@ -194,7 +246,7 @@ const styles = {
     padding: "30px",
     borderRadius: "12px",
     boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-    marginBottom: "40px" 
+    marginBottom: "40px",
   },
   carouselBox: {
     height: "350px",
@@ -202,12 +254,11 @@ const styles = {
     margin: "0 auto",
     borderRadius: "8px",
     overflow: "hidden",
-    position: "relative",  
+    position: "relative",
     backgroundColor: "#eee",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#eee",
   },
   carouselImage: {
     width: "100%",
