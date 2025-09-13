@@ -3,13 +3,21 @@ import { useNavigate } from "react-router-dom";
 import logo from '../assets/prime-logo.png';
 import {
   getAuth,
-  onIdTokenChanged,           // ✅ EKLENDİ
+  onIdTokenChanged,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  updateProfile,
 } from "firebase/auth";
+import { db } from "../firebase";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
 function LoginSignup({ setUser }) {
   const [isSignUp, setIsSignUp] = useState(false);
+
+  // ✅ Sign Up alanları eklendi
+  const [firstName, setFirstName] = useState('');
+  const [lastName,  setLastName]  = useState('');
+
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
@@ -37,21 +45,47 @@ function LoginSignup({ setUser }) {
 
     try {
       if (isSignUp) {
-        await createUserWithEmailAndPassword(auth, email, password);
+        // 👤 Kullanıcı oluştur
+        const { user } = await createUserWithEmailAndPassword(auth, email, password);
+
+        // 🔤 İsimleri Auth profilinde tut
+        const displayName = `${firstName || ""} ${lastName || ""}`.trim();
+        if (displayName) {
+          await updateProfile(user, { displayName });
+        }
+
+        // 🗂 Firestore: users/{uid}
+        await setDoc(doc(db, "users", user.uid), {
+          firstName: firstName || "",
+          lastName:  lastName  || "",
+          email:     user.email || email,
+          createdAt: serverTimestamp()
+        }, { merge: true });
+
+        // İstersen yerel profil sakla (opsiyonel)
+        localStorage.setItem("userProfile", JSON.stringify({
+          firstName: firstName || "",
+          lastName:  lastName  || "",
+          email:     user.email || email
+        }));
+
         setIsSignUp(false);
+        setFirstName('');
+        setLastName('');
         alert("Account created! Please login.");
       } else {
         // LOGIN
         const { user } = await signInWithEmailAndPassword(auth, email, password);
 
-        // 🔥 Her login'de TAZE token al ve console'a bas
+        // 🔥 Taze token
         const token = await user.getIdToken(true);
         console.log("🔥 ID Token:", token);
         window.__ID_TOKEN__ = token;
         localStorage.setItem("token", token);
 
-        // Basit profil set'i (displayName yoksa boş bırak)
+        // İsim/soyisim: displayName varsa parçala
         const [dispFirst = "", dispLast = ""] = (user.displayName || "").split(" ");
+
         setUser({
           email: user.email,
           firstName: dispFirst,
@@ -106,7 +140,54 @@ function LoginSignup({ setUser }) {
         }}>
           {isSignUp ? 'Sign Up' : 'Login'}
         </h2>
+
         <form onSubmit={handleSubmit}>
+          {/* 🔹 Sign Up ise ad/soyad alanlarını göster */}
+          {isSignUp && (
+            <>
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ color: '#fff', fontWeight: 500 }}>First Name:</label>
+                <input
+                  type="text"
+                  value={firstName}
+                  onChange={e => setFirstName(e.target.value)}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: 12,
+                    marginTop: 6,
+                    border: '1px solid #ff0000',
+                    borderRadius: 8,
+                    background: '#000',
+                    color: '#fff',
+                    fontSize: 15,
+                    outline: 'none',
+                  }}
+                />
+              </div>
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ color: '#fff', fontWeight: 500 }}>Last Name:</label>
+                <input
+                  type="text"
+                  value={lastName}
+                  onChange={e => setLastName(e.target.value)}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: 12,
+                    marginTop: 6,
+                    border: '1px solid #ff0000',
+                    borderRadius: 8,
+                    background: '#000',
+                    color: '#fff',
+                    fontSize: 15,
+                    outline: 'none',
+                  }}
+                />
+              </div>
+            </>
+          )}
+
           <div style={{ marginBottom: 18 }}>
             <label style={{ color: '#fff', fontWeight: 500 }}>Email:</label>
             <input
@@ -167,12 +248,13 @@ function LoginSignup({ setUser }) {
             {isSignUp ? 'Sign Up' : 'Login'}
           </button>
         </form>
+
         <div style={{ marginTop: 22, textAlign: 'center' }}>
           <span style={{ color: '#fff' }}>
             {isSignUp ? 'Already have an account?' : "Don't have an account?"}
           </span>
           <button
-            onClick={() => { setIsSignUp(!isSignUp); setEmail(''); setPassword(''); }}
+            onClick={() => { setIsSignUp(!isSignUp); /* alanları temizle */ setFirstName(''); setLastName(''); setEmail(''); setPassword(''); }}
             style={{
               marginLeft: 8,
               background: 'none',

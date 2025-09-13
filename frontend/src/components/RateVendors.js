@@ -1,62 +1,95 @@
-import React, { useState } from "react";
-
-const initialVendors = [
-  { id: 1, name: "Vendor A", ratings: [] },
-  { id: 2, name: "Vendor B", ratings: [] },
-  { id: 3, name: "Vendor C", ratings: [] },
-];
-
-function getAverage(ratingObj) {
-  const vals = Object.values(ratingObj).filter((v) => typeof v === "number");
-  if (!vals.length) return "-";
-  return (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(2);
-}
+import React, { useEffect, useState } from "react";
+import { getAuth } from "firebase/auth";
+import { Link } from "react-router-dom";
 
 const RateVendors = () => {
-  const [vendors, setVendors] = useState(initialVendors);
+  const [vendors, setVendors] = useState([]);
   const [userRatings, setUserRatings] = useState({}); // { vendorId: { price, time, quality } }
+  const auth = getAuth();
+
+  const fetchVendors = async () => {
+    try {
+      const user = auth.currentUser;
+      const token = user ? await user.getIdToken(true) : localStorage.getItem("token");
+      if (!token) {
+        alert("User not authenticated! Please login.");
+        return;
+      }
+
+      const res = await fetch("http://localhost:9090/api/vendors", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (res.ok) {
+        const data = await res.json(); // ✅ JSON'u sadece 1 kez oku
+        setVendors(Array.isArray(data) ? data : []);
+      } else if (res.status === 401) {
+        alert("Unauthorized! Please login again.");
+      } else {
+        const t = await res.text().catch(() => "");
+        alert("Failed to fetch vendors: " + (t || `${res.status} ${res.statusText}`));
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Network error or server not reachable.");
+    }
+  };
+
+  useEffect(() => {
+    fetchVendors();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleRatingChange = (vendorId, field, value) => {
-    setUserRatings({
-      ...userRatings,
+    setUserRatings((prev) => ({
+      ...prev,
       [vendorId]: {
-        ...userRatings[vendorId],
+        ...(prev[vendorId] || {}),
         [field]: value,
       },
-    });
+    }));
   };
 
-  const handleSubmit = (vendorId) => {
-    const rating = userRatings[vendorId];
-    if (!rating || !rating.price || !rating.time || !rating.quality) return;
-    setVendors(
-      vendors.map((v) =>
-        v.id === vendorId
-          ? { ...v, ratings: [...v.ratings, rating] }
-          : v
-      )
-    );
-    setUserRatings({ ...userRatings, [vendorId]: {} });
-  };
+  const handleSubmit = async (vendor) => {
+    const sel = userRatings[vendor.id];
+    if (!sel?.price || !sel?.time || !sel?.quality) return;
 
-  // Calculate averages for each vendor
-  const getVendorAverages = (vendor) => {
-    if (!vendor.ratings.length)
-      return { price: "-", time: "-", quality: "-", avg: "-" };
-    const priceAvg = (
-      (vendor.ratings.reduce((a, b) => a + b.price, 0) / vendor.ratings.length)
-        .toFixed(2)
-    );
-    const timeAvg = (
-      (vendor.ratings.reduce((a, b) => a + b.time, 0) / vendor.ratings.length)
-        .toFixed(2)
-    );
-    const qualityAvg = (
-      (vendor.ratings.reduce((a, b) => a + b.quality, 0) / vendor.ratings.length)
-        .toFixed(2)
-    );
-    const avg = ((+priceAvg + +timeAvg + +qualityAvg) / 3).toFixed(2);
-    return { price: priceAvg, time: timeAvg, quality: qualityAvg, avg };
+    const avg = Number(((sel.price + sel.time + sel.quality) / 3).toFixed(2));
+
+    try {
+      const user = auth.currentUser;
+      const token = user ? await user.getIdToken(true) : localStorage.getItem("token");
+      if (!token) {
+        alert("User not authenticated! Please login.");
+        return;
+      }
+
+      const res = await fetch(`http://localhost:9090/api/vendors/${vendor.id}/rating`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ rating: avg }),
+      });
+
+      if (res.ok) {
+        const updated = await res.json().catch(() => ({ ...vendor, rating: avg }));
+        setVendors((prev) => prev.map((v) => (v.id === vendor.id ? updated : v)));
+        setUserRatings((prev) => ({ ...prev, [vendor.id]: {} }));
+      } else if (res.status === 401) {
+        alert("Unauthorized! Please login again.");
+      } else {
+        const t = await res.text().catch(() => "");
+        alert("Failed to submit rating: " + (t || `${res.status} ${res.statusText}`));
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Network error or server not reachable.");
+    }
   };
 
   return (
@@ -81,10 +114,26 @@ const RateVendors = () => {
           gap: 10,
         }}
       >
-        Rate{" "}
-        <span style={{ color: "#d90000" }}>
-          Vendors
-        </span>
+        <Link
+          to="/"
+          style={{
+            textDecoration: "none",
+            cursor: "pointer",
+            userSelect: "none",
+            padding: "4px 8px",
+            borderRadius: 8,
+            border: "1px solid #e5e7eb",
+            background: "#fff",
+            boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+            color: "inherit",
+          }}
+          title="Back to Dashboard"
+          aria-label="Back to Dashboard"
+          role="button"
+        >
+          &larr;
+        </Link>
+        Rate <span style={{ color: "#d90000" }}>Vendors</span>
       </h1>
 
       <table
@@ -94,6 +143,7 @@ const RateVendors = () => {
           boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
           borderRadius: 8,
           overflow: "hidden",
+          background: "#fff",
         }}
       >
         <thead>
@@ -113,150 +163,101 @@ const RateVendors = () => {
           </tr>
         </thead>
         <tbody>
-          {vendors.map((v) => {
-            const averages = getVendorAverages(v);
-            return (
-              <tr
-                key={v.id}
-                style={{
-                  borderBottom: "1px solid #ccc",
-                  backgroundColor: "#fff",
-                }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.backgroundColor = "#f5f5f5")
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.backgroundColor = "#fff")
-                }
-              >
-                <td style={{ padding: 10 }}>{v.name}</td>
-                <td style={{ padding: 10 }}>
-                  {[1, 2, 3, 4, 5].map((num) => (
-                    <button
-                      key={num}
-                      style={{
-                        background: "none",
-                        border: "none",
-                        color:
-                          userRatings[v.id]?.price === num
-                            ? "#d90000"
-                            : "#ccc",
-                        fontSize: 20,
-                        cursor: "pointer",
-                      }}
-                      onClick={() => handleRatingChange(v.id, "price", num)}
-                    >
-                      ★
-                    </button>
-                  ))}
-                  <span
-                    style={{
-                      marginLeft: 8,
-                      color: "#d90000",
-                      fontWeight: 500,
-                    }}
-                  >
-                    {averages.price}
-                  </span>
-                </td>
-                <td style={{ padding: 10 }}>
-                  {[1, 2, 3, 4, 5].map((num) => (
-                    <button
-                      key={num}
-                      style={{
-                        background: "none",
-                        border: "none",
-                        color:
-                          userRatings[v.id]?.time === num ? "#d90000" : "#ccc",
-                        fontSize: 20,
-                        cursor: "pointer",
-                      }}
-                      onClick={() => handleRatingChange(v.id, "time", num)}
-                    >
-                      ★
-                    </button>
-                  ))}
-                  <span
-                    style={{
-                      marginLeft: 8,
-                      color: "#d90000",
-                      fontWeight: 500,
-                    }}
-                  >
-                    {averages.time}
-                  </span>
-                </td>
-                <td style={{ padding: 10 }}>
-                  {[1, 2, 3, 4, 5].map((num) => (
-                    <button
-                      key={num}
-                      style={{
-                        background: "none",
-                        border: "none",
-                        color:
-                          userRatings[v.id]?.quality === num ? "#d90000" : "#ccc",
-                        fontSize: 20,
-                        cursor: "pointer",
-                      }}
-                      onClick={() => handleRatingChange(v.id, "quality", num)}
-                    >
-                      ★
-                    </button>
-                  ))}
-                  <span
-                    style={{
-                      marginLeft: 8,
-                      color: "#d90000",
-                      fontWeight: 500,
-                    }}
-                  >
-                    {averages.quality}
-                  </span>
-                </td>
-                <td
-                  style={{
-                    padding: 10,
-                    fontWeight: 600,
-                    color: "#d90000",
-                  }}
+          {vendors.length === 0 ? (
+            <tr>
+              <td colSpan={6} style={{ padding: 16, textAlign: "center", color: "#666" }}>
+                No vendors found
+              </td>
+            </tr>
+          ) : (
+            vendors.map((v) => {
+              const sel = userRatings[v.id] || {};
+              return (
+                <tr
+                  key={v.id}
+                  style={{ borderBottom: "1px solid #eee", backgroundColor: "#fff" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f5f5f5")}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#fff")}
                 >
-                  {averages.avg}
-                </td>
-                <td style={{ padding: 10 }}>
-                  <button
-                    style={{
-                      backgroundColor: "#d90000",
-                      color: "#fff",
-                      padding: "6px 14px",
-                      borderRadius: 6,
-                      border: "none",
-                      cursor:
-                        userRatings[v.id]?.price &&
-                        userRatings[v.id]?.time &&
-                        userRatings[v.id]?.quality
-                          ? "pointer"
-                          : "not-allowed",
-                      fontSize: 16,
-                      boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
-                    }}
-                    disabled={
-                      !(
-                        userRatings[v.id]?.price &&
-                        userRatings[v.id]?.time &&
-                        userRatings[v.id]?.quality
-                      )
-                    }
-                    onClick={() => handleSubmit(v.id)}
-                  >
-                    Submit
-                  </button>
-                </td>
-              </tr>
-            );
-          })}
+                  <td style={{ padding: 10 }}>{v.name}</td>
+                  <td style={{ padding: 10 }}>
+                    {[1, 2, 3, 4, 5].map((num) => (
+                      <button
+                        key={num}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: sel.price === num ? "#d90000" : "#ccc",
+                          fontSize: 20,
+                          cursor: "pointer",
+                        }}
+                        onClick={() => handleRatingChange(v.id, "price", num)}
+                      >
+                        ★
+                      </button>
+                    ))}
+                  </td>
+                  <td style={{ padding: 10 }}>
+                    {[1, 2, 3, 4, 5].map((num) => (
+                      <button
+                        key={num}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: sel.time === num ? "#d90000" : "#ccc",
+                          fontSize: 20,
+                          cursor: "pointer",
+                        }}
+                        onClick={() => handleRatingChange(v.id, "time", num)}
+                      >
+                        ★
+                      </button>
+                    ))}
+                  </td>
+                  <td style={{ padding: 10 }}>
+                    {[1, 2, 3, 4, 5].map((num) => (
+                      <button
+                        key={num}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: sel.quality === num ? "#d90000" : "#ccc",
+                          fontSize: 20,
+                          cursor: "pointer",
+                        }}
+                        onClick={() => handleRatingChange(v.id, "quality", num)}
+                      >
+                        ★
+                      </button>
+                    ))}
+                  </td>
+                  <td style={{ padding: 10, fontWeight: 600, color: "#d90000" }}>
+                    {v.rating ?? "-"}
+                  </td>
+                  <td style={{ padding: 10 }}>
+                    <button
+                      style={{
+                        backgroundColor: "#d90000",
+                        color: "#fff",
+                        padding: "6px 14px",
+                        borderRadius: 6,
+                        border: "none",
+                        cursor: sel.price && sel.time && sel.quality ? "pointer" : "not-allowed",
+                        fontSize: 16,
+                        boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
+                      }}
+                      disabled={!(sel.price && sel.time && sel.quality)}
+                      onClick={() => handleSubmit(v)}
+                    >
+                      Submit
+                    </button>
+                  </td>
+                </tr>
+              );
+            })
+          )}
         </tbody>
       </table>
-      {/* ...footer if needed... */}
     </div>
   );
 };

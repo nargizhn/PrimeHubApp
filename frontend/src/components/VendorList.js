@@ -128,62 +128,84 @@ export default function VendorList({ isAdmin }) {
       }}
     >
       <h1
-        style={{
-          marginBottom: 20,
-          color: "#000",
-          fontSize: "2rem",
-          fontWeight: "bold",
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-        }}
-      >
-        <img src={logo} alt="Logo" style={{ height: 40 }} /> Vendor{" "}
-        <span style={{ color: "#d90000" }}>List</span>
-      </h1>
+  style={{
+    marginBottom: 20,
+    color: "#000",
+    fontSize: "2rem",
+    fontWeight: "bold",
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+  }}
+>
+  <img src={logo} alt="Logo" style={{ height: 40 }} /> Vendor{" "}
+  <span style={{ color: "#d90000" }}>List</span>
+</h1>
 
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          marginBottom: 20,
-          gap: 12,
-          flexWrap: "wrap",
-        }}
-      >
-        <input
-          type="text"
-          placeholder="Search by Name, City or Category"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          style={{
-            padding: 10,
-            minWidth: 260,
-            flex: "1 1 300px",
-            borderRadius: 8,
-            border: "1px solid #e5e7eb",
-            fontSize: 16,
-            background: "#fff",
-          }}
-        />
-        <button
-          style={{
-            padding: "10px 16px",
-            borderRadius: 10,
-            border: "none",
-            background:
-              "linear-gradient(90deg, rgba(217,0,0,1) 0%, rgba(179,0,0,1) 100%)",
-            color: "#fff",
-            cursor: "pointer",
-            fontSize: 15,
-            fontWeight: 700,
-            boxShadow: "0 6px 14px rgba(217,0,0,0.18)",
-          }}
-          onClick={() => navigate("/add-vendor")}
-        >
-          ➕ Add Vendor
-        </button>
-      </div>
+<div
+  style={{
+    display: "flex",
+    justifyContent: "space-between",
+    marginBottom: 20,
+    gap: 12,
+    flexWrap: "wrap",
+    alignItems: "center", // hizalama için önemli
+  }}
+>
+  <span
+    onClick={() => navigate("/")}
+    style={{
+      cursor: "pointer",
+      userSelect: "none",
+      padding: "8px 12px",
+      borderRadius: 8,
+      border: "1px solid #e5e7eb",
+      background: "#fff",
+      boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+      fontSize: 18,
+      fontWeight: "bold",
+    }}
+    title="Back to Dashboard"
+    aria-label="Back to Dashboard"
+    role="button"
+  >
+    &larr;
+  </span>
+
+  <input
+    type="text"
+    placeholder="Search by Name, City or Category"
+    value={search}
+    onChange={(e) => setSearch(e.target.value)}
+    style={{
+      padding: 10,
+      minWidth: 260,
+      flex: "1 1 300px",
+      borderRadius: 8,
+      border: "1px solid #e5e7eb",
+      fontSize: 16,
+      background: "#fff",
+    }}
+  />
+  <button
+    style={{
+      padding: "10px 16px",
+      borderRadius: 10,
+      border: "none",
+      background:
+        "linear-gradient(90deg, rgba(217,0,0,1) 0%, rgba(179,0,0,1) 100%)",
+      color: "#fff",
+      cursor: "pointer",
+      fontSize: 15,
+      fontWeight: 700,
+      boxShadow: "0 6px 14px rgba(217,0,0,0.18)",
+    }}
+    onClick={() => navigate("/add-vendor")}
+  >
+    ➕ Add Vendor
+  </button>
+</div>
+
 
       <div
         style={{

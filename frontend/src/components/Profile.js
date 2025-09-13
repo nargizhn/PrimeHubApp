@@ -1,10 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Camera, Edit2, Save, X, Eye, EyeOff, User, Mail, Calendar, ArrowLeft } from 'lucide-react';
+import { Camera, Edit2, Save, X, Eye, EyeOff, User, Mail, Calendar } from 'lucide-react';
 import { getAuth, onAuthStateChanged, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
-import { db, storage } from '../firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import { useNavigate } from 'react-router-dom';
+import { db } from '../firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 // Move ProfileField component outside to prevent recreation on every render
 const ProfileField = ({ label, field, value, icon: Icon, type = "text", readOnly = false, 
@@ -71,13 +69,11 @@ const ProfileField = ({ label, field, value, icon: Icon, type = "text", readOnly
 };
 
 export default function UserProfilePage({ email }) {
-  const navigate = useNavigate();
   const [user, setUser] = useState({
     firstName: '',
     lastName: '',
     email: email || '',
     profileImage: null,
-    profileImageUrl: null,
     joinDate: ''
   });
 
@@ -97,43 +93,32 @@ export default function UserProfilePage({ email }) {
     new: false,
     confirm: false
   });
-  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     const auth = getAuth();
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (!firebaseUser) return;
-
-      let firstName = '';
-      let lastName = '';
-      let emailAddr = firebaseUser.email || '';
-      let joinDate = '';
-
+    return onAuthStateChanged(auth, async (fb) => {
+      if (!fb) return;
+      let firstName = "";
+      let lastName = "";
       try {
-        const snap = await getDoc(doc(db, 'users', firebaseUser.uid));
+        const snap = await getDoc(doc(db, "users", fb.uid));
         if (snap.exists()) {
           const data = snap.data();
           firstName = data.firstName || firstName;
           lastName = data.lastName || lastName;
           joinDate = data.createdAt?.toDate ? data.createdAt.toDate().toLocaleDateString() : '';
-          
-          // Load profile image URL if it exists
-          if (data.profileImageUrl) {
-            setUser(prev => ({ ...prev, profileImageUrl: data.profileImageUrl }));
-          }
         }
-      } catch (e) {
-        // fallback below
+      } catch {}
+      if ((!firstName || !lastName) && fb.displayName) {
+        const parts = fb.displayName.split(" ");
+        firstName = firstName || parts[0] || "";
+        lastName = lastName || parts.slice(1).join(" ") || "";
       }
-
-      if ((!firstName || !lastName) && firebaseUser.displayName) {
-        const parts = firebaseUser.displayName.split(' ');
-        firstName = firstName || parts[0] || '';
-        lastName = lastName || parts.slice(1).join(' ') || '';
-      }
-
-      setUser((prev) => ({
-        ...prev,
+      const joinDate = fb.metadata?.creationTime
+        ? new Date(fb.metadata.creationTime).toLocaleDateString()
+        : "";
+      setUser({
+        uid: fb.uid,
         firstName,
         lastName,
         email: email || emailAddr,
@@ -148,53 +133,16 @@ export default function UserProfilePage({ email }) {
     setTempData({ ...tempData, [field]: user[field] });
   };
 
-  const handleSave = async (field) => {
+  const handleSave = (field) => {
     if (field === 'name') {
-      const newFirstName = tempData.firstName !== undefined ? tempData.firstName : user.firstName;
-      const newLastName = tempData.lastName !== undefined ? tempData.lastName : user.lastName;
-
-      setUser({
-        ...user,
-        firstName: newFirstName,
-        lastName: newLastName
+      setUser({ 
+        ...user, 
+        firstName: tempData.firstName !== undefined ? tempData.firstName : user.firstName,
+        lastName: tempData.lastName !== undefined ? tempData.lastName : user.lastName
       });
-
-      try {
-        const auth = getAuth();
-        const currentUser = auth.currentUser;
-        if (currentUser) {
-          const userRef = doc(db, 'users', currentUser.uid);
-          await setDoc(userRef, { firstName: newFirstName, lastName: newLastName }, { merge: true });
-        }
-      } catch (e) {
-        // Optionally surface error to user
-        console.error('Failed to save name to Firestore', e);
-        alert('Failed to save name changes. Please try again.');
-      }
     }
     setIsEditing({ ...isEditing, [field]: false });
     setTempData({ ...tempData, [field]: undefined });
-  };
-
-  const handleSaveAll = async () => {
-    const auth = getAuth();
-    const currentUser = auth.currentUser;
-    if (!currentUser) return;
-
-    const newFirstName = isEditing.name && tempData.firstName !== undefined ? tempData.firstName : user.firstName;
-    const newLastName = isEditing.name && tempData.lastName !== undefined ? tempData.lastName : user.lastName;
-
-    try {
-      const userRef = doc(db, 'users', currentUser.uid);
-      await setDoc(userRef, { firstName: newFirstName, lastName: newLastName }, { merge: true });
-      setUser({ ...user, firstName: newFirstName, lastName: newLastName });
-      setIsEditing({ ...isEditing, name: false });
-      setTempData({ ...tempData, name: undefined, firstName: undefined, lastName: undefined });
-      alert('Changes saved successfully.');
-    } catch (e) {
-      console.error('Failed to save changes', e);
-      alert('Failed to save changes. Please try again.');
-    }
   };
 
   const handleCancel = (field) => {
@@ -202,65 +150,14 @@ export default function UserProfilePage({ email }) {
     setTempData({ ...tempData, [field]: undefined });
   };
 
-  const handleImageUpload = async (event) => {
+  const handleImageUpload = (event) => {
     const file = event.target.files[0];
-    if (!file) return;
-
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      alert('Please select an image file');
-      return;
-    }
-
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      alert('Image size must be less than 5MB');
-      return;
-    }
-
-    setUploading(true);
-    
-    try {
-      const auth = getAuth();
-      const currentUser = auth.currentUser;
-      if (!currentUser) {
-        alert('You must be signed in to upload a profile picture');
-        return;
-      }
-
-      // Create a reference to the file in Firebase Storage
-      const imageRef = ref(storage, `profile-images/${currentUser.uid}`);
-      
-      // Delete existing image if it exists
-      try {
-        await deleteObject(imageRef);
-      } catch (error) {
-        // Ignore error if file doesn't exist
-      }
-
-      // Upload the new image
-      const snapshot = await uploadBytes(imageRef, file);
-      
-      // Get the download URL
-      const downloadURL = await getDownloadURL(snapshot.ref);
-      
-      // Update user state with both local preview and URL
+    if (file) {
       const reader = new FileReader();
       reader.onload = (e) => {
-        setUser({ ...user, profileImage: e.target.result, profileImageUrl: downloadURL });
+        setUser({ ...user, profileImage: e.target.result });
       };
       reader.readAsDataURL(file);
-      
-      // Save the URL to Firestore
-      const userRef = doc(db, 'users', currentUser.uid);
-      await setDoc(userRef, { profileImageUrl: downloadURL }, { merge: true });
-      
-      alert('Profile picture updated successfully!');
-    } catch (error) {
-      console.error('Error uploading image:', error);
-      alert('Failed to upload profile picture. Please try again.');
-    } finally {
-      setUploading(false);
     }
   };
 
@@ -276,15 +173,12 @@ export default function UserProfilePage({ email }) {
 
     const auth = getAuth();
     const currentUser = auth.currentUser;
-    if (!currentUser) {
-      alert('You must be signed in to change your password.');
-      return;
-    }
-
+    if (!currentUser) return alert("Please sign in again.");
     try {
-      const credential = EmailAuthProvider.credential(
+      setBusy(true);
+      const cred = EmailAuthProvider.credential(
         currentUser.email || user.email,
-        passwordData.currentPassword
+        pwd.current
       );
 
       await reauthenticateWithCredential(currentUser, credential);
@@ -341,26 +235,6 @@ export default function UserProfilePage({ email }) {
       background: 'linear-gradient(90deg, #000 0%, #dc2626 100%)',
       padding: '32px 24px',
       color: '#fff'
-    },
-    headerContent: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '16px'
-    },
-    backButton: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      backgroundColor: 'rgba(255, 255, 255, 0.1)',
-      color: '#fff',
-      border: '1px solid rgba(255, 255, 255, 0.2)',
-      padding: '8px 16px',
-      borderRadius: '6px',
-      cursor: 'pointer',
-      fontSize: '14px',
-      fontWeight: '500',
-      transition: 'all 0.2s',
-      alignSelf: 'flex-start'
     },
     headerTitle: {
       fontSize: '32px',
@@ -424,10 +298,7 @@ export default function UserProfilePage({ email }) {
       cursor: 'pointer',
       border: 'none',
       boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-      transition: 'all 0.2s',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center'
+      transition: 'background-color 0.2s'
     },
     hiddenInput: {
       display: 'none'
@@ -636,27 +507,11 @@ export default function UserProfilePage({ email }) {
 
   return (
     <div style={styles.container}>
-      <style>
-        {`
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `}
-      </style>
       <div style={styles.wrapper}>
         <div style={styles.card}>
           <div style={styles.header}>
-            <div style={styles.headerContent}>
-              <button onClick={() => navigate('/dashboard')} style={styles.backButton}>
-                <ArrowLeft size={20} />
-                Back to Dashboard
-              </button>
-              <div>
-                <h1 style={styles.headerTitle}>Profile Settings</h1>
-                <p style={styles.headerSubtitle}>Manage your account information and preferences</p>
-              </div>
-            </div>
+            <h1 style={styles.headerTitle}>Profile Settings</h1>
+            <p style={styles.headerSubtitle}>Manage your account information and preferences</p>
           </div>
 
           <div style={styles.content}>
@@ -664,125 +519,81 @@ export default function UserProfilePage({ email }) {
               <div style={styles.profileImageContainer}>
                 <div style={styles.avatarWrapper}>
                   <div style={styles.avatar}>
-                    {user.profileImageUrl || user.profileImage ? (
-                      <img src={user.profileImageUrl || user.profileImage} alt="Profile" style={styles.avatarImage} />
+                    {user.profileImage ? (
+                      <img src={user.profileImage} alt="Profile" style={styles.avatarImage} />
                     ) : (
                       <div style={styles.avatarPlaceholder}>
                         <User size={64} />
                       </div>
                     )}
                   </div>
-                  <label style={{...styles.uploadButton, opacity: uploading ? 0.5 : 1, cursor: uploading ? 'not-allowed' : 'pointer'}}>
-                    {uploading ? (
-                      <div style={{width: '16px', height: '16px', border: '2px solid #fff', borderTop: '2px solid transparent', borderRadius: '50%', animation: 'spin 1s linear infinite'}}></div>
-                    ) : (
-                      <Camera size={16} />
-                    )}
+                  <label style={styles.uploadButton}>
+                    <Camera size={16} />
                     <input
                       type="file"
                       accept="image/*"
                       onChange={handleImageUpload}
                       style={styles.hiddenInput}
-                      disabled={uploading}
                     />
                   </label>
                 </div>
-                <p style={styles.uploadText}>{uploading ? 'Uploading...' : 'Click camera icon to upload'}</p>
+                <p style={styles.uploadText}>Click camera icon to upload</p>
               </div>
+              <div style={s.mail}>{user.email}</div>
+            </div>
+          </div>
 
-              <div style={styles.welcomeSection}>
-                <h2 style={styles.welcomeTitle}>Welcome back, {user.firstName}!</h2>
-                <div style={styles.joinDate}>
-                  <Calendar size={16} />
-                  <span>Joined {user.joinDate}</span>
+          {/* Editable Name */}
+          <div style={s.section}>
+            <div style={s.label}>Full Name</div>
+            {!editing ? (
+              <div style={s.row}>
+                <div style={s.value}>
+                  {(user.firstName || "") + " " + (user.lastName || "")}
                 </div>
-              </div>
-            </div>
-
-            <div style={styles.grid}>
-              <ProfileField 
-                label="Full Name" 
-                field="name" 
-                value={`${user.firstName} ${user.lastName}`} 
-                icon={User}
-                isEditing={isEditing}
-                tempData={tempData}
-                user={user}
-                onEdit={handleEdit}
-                onSave={handleSave}
-                onCancel={handleCancel}
-                onTempDataChange={setTempData}
-                styles={styles}
-              />
-              <ProfileField 
-                label="Email Address" 
-                field="email" 
-                value={user.email} 
-                icon={Mail} 
-                type="email" 
-                readOnly
-                isEditing={isEditing}
-                tempData={tempData}
-                user={user}
-                onEdit={handleEdit}
-                onSave={handleSave}
-                onCancel={handleCancel}
-                onTempDataChange={setTempData}
-                styles={styles}
-              />
-            </div>
-
-            <div style={styles.passwordSection}>
-              <div style={styles.passwordHeader}>
-                <h3 style={styles.passwordTitle}>Password & Security</h3>
-                <button
-                  onClick={() => setShowPasswordForm(!showPasswordForm)}
-                  style={styles.passwordButton}
-                >
-                  {showPasswordForm ? 'Cancel' : 'Change Password'}
+                <button onClick={() => setEditing(true)} style={s.outlineBtn}>
+                  Edit
                 </button>
               </div>
+            ) : (
+              <div style={s.editGrid}>
+                <input
+                  value={first}
+                  onChange={(e) => setFirst(e.target.value)}
+                  placeholder="First name"
+                  style={s.input}
+                  autoFocus
+                />
+                <input
+                  value={last}
+                  onChange={(e) => setLast(e.target.value)}
+                  placeholder="Last name"
+                  style={s.input}
+                />
+                <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                  <button onClick={saveName} style={s.primaryBtn}>
+                    Save
+                  </button>
+                  <button
+                    onClick={() => {
+                      setFirst(user.firstName || "");
+                      setLast(user.lastName || "");
+                      setEditing(false);
+                    }}
+                    style={s.ghostBtn}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
 
-              {showPasswordForm && (
-                <div>
-                  <div style={styles.passwordForm}>
-                    <div style={styles.passwordField}>
-                      <label style={styles.passwordLabel}>Current Password</label>
-                      <div style={styles.passwordInputWrapper}>
-                        <input
-                          type={showPasswords.current ? 'text' : 'password'}
-                          value={passwordData.currentPassword}
-                          onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-                          style={styles.passwordInput}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPasswords({ ...showPasswords, current: !showPasswords.current })}
-                          style={styles.eyeButton}
-                        >
-                          {showPasswords.current ? <EyeOff size={16} /> : <Eye size={16} />}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div style={styles.passwordField}>
-                      <label style={styles.passwordLabel}>New Password</label>
-                      <div style={styles.passwordInputWrapper}>
-                        <input
-                          type={showPasswords.new ? 'text' : 'password'}
-                          value={passwordData.newPassword}
-                          onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                          style={styles.passwordInput}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPasswords({ ...showPasswords, new: !showPasswords.new })}
-                          style={styles.eyeButton}
-                        >
-                          {showPasswords.new ? <EyeOff size={16} /> : <Eye size={16} />}
-                        </button>
-                      </div>
-                    </div>
+          {/* Email (read-only) */}
+          <div style={s.section}>
+            <div style={s.label}>Email Address</div>
+            <input value={user.email} readOnly style={{ ...s.input, background: "#eee" }} />
+          </div>
 
                     <div style={styles.passwordField}>
                       <label style={styles.passwordLabel}>Confirm New Password</label>
@@ -813,12 +624,12 @@ export default function UserProfilePage({ email }) {
               )}
 
               {!showPasswordForm && (
-                <p style={styles.passwordDescription}>Keep your account secure with a strong password.</p>
+                <p style={styles.passwordDescription}>Keep your account secure with a strong password. Last changed: Never</p>
               )}
             </div>
 
             <div style={styles.footer}>
-              <button onClick={handleSaveAll} style={styles.saveAllButton}>Save All Changes</button>
+              <button style={styles.saveAllButton}>Save All Changes</button>
             </div>
           </div>
         </div>
@@ -826,3 +637,110 @@ export default function UserProfilePage({ email }) {
     </div>
   );
 }
+
+/* ---------- Styles (compact, old-school card vibe + modern touches) ---------- */
+const s = {
+  page: {
+    minHeight: "100vh",
+    background: "#f6f7fb",
+    fontFamily:
+      '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+  },
+  shell: { maxWidth: 1000, margin: "0 auto", padding: 24 },
+  header: {
+    background: "linear-gradient(90deg, #000 0%, #dc2626 100%)",
+    color: "#fff",
+    borderRadius: 16,
+    padding: "22px 24px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    boxShadow: "0 8px 24px rgba(220,38,38,0.35)",
+    marginBottom: 18,
+  },
+  h1: { margin: 0, fontSize: 28, fontWeight: 800, letterSpacing: 0.3 },
+  sub: { opacity: 0.85, marginTop: 6 },
+  join: {
+    background: "rgba(255,255,255,0.12)",
+    padding: "8px 12px",
+    borderRadius: 10,
+    fontWeight: 600,
+  },
+  card: {
+    background: "#fff",
+    borderRadius: 16,
+    boxShadow: "0 12px 28px rgba(0,0,0,0.10)",
+    padding: 22,
+  },
+  topRow: {
+    display: "flex",
+    gap: 16,
+    alignItems: "center",
+    paddingBottom: 12,
+    borderBottom: "1px solid #eee",
+    marginBottom: 16,
+  },
+  avatarWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: "50%",
+    overflow: "hidden",
+    background: "linear-gradient(135deg,#18181b 0%,#dc2626 100%)",
+    display: "grid",
+    placeItems: "center",
+    color: "#fff",
+    fontWeight: 800,
+    fontSize: 20,
+    boxShadow: "0 6px 16px rgba(0,0,0,0.20)",
+  },
+  avatarImg: { width: "100%", height: "100%", objectFit: "cover" },
+  avatarPh: { width: "100%", height: "100%", display: "grid", placeItems: "center" },
+  name: { fontSize: 20, fontWeight: 700, color: "#111827" },
+  mail: { color: "#6b7280", marginTop: 4 },
+  section: { marginTop: 16 },
+  label: { fontWeight: 700, color: "#dc2626", marginBottom: 8 },
+  row: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 },
+  value: { fontSize: 16, color: "#111827" },
+  editGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: 10,
+    alignItems: "center",
+  },
+  input: {
+    width: "100%",
+    padding: "10px 12px",
+    border: "1px solid #d1d5db",
+    borderRadius: 10,
+    outline: "none",
+    boxSizing: "border-box",
+  },
+  primaryBtn: {
+    background: "#dc2626",
+    color: "#fff",
+    border: "none",
+    padding: "10px 14px",
+    borderRadius: 10,
+    cursor: "pointer",
+    fontWeight: 700,
+    boxShadow: "0 6px 16px rgba(220,38,38,0.35)",
+  },
+  outlineBtn: {
+    background: "transparent",
+    color: "#dc2626",
+    border: "2px solid #dc2626",
+    padding: "8px 12px",
+    borderRadius: 10,
+    cursor: "pointer",
+    fontWeight: 700,
+  },
+  ghostBtn: {
+    background: "transparent",
+    color: "#6b7280",
+    border: "1px solid #d1d5db",
+    padding: "10px 14px",
+    borderRadius: 10,
+    cursor: "pointer",
+    fontWeight: 600,
+  },
+};
