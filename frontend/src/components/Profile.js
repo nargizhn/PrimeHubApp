@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Camera, Eye, EyeOff, User } from 'lucide-react';
 import {
   getAuth,
@@ -11,6 +12,7 @@ import { db } from '../firebase';
 import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 
 export default function UserProfilePage({ email }) {
+  const navigate = useNavigate();
   const [user, setUser] = useState({
     uid: '',
     firstName: '',
@@ -261,11 +263,31 @@ export default function UserProfilePage({ email }) {
     <div style={styles.container}>
       <div style={styles.wrapper}>
         <div style={styles.card}>
+          {/* Back Button */}
+          <button
+            onClick={() => navigate('/')}
+            style={{
+              margin: '16px 0 0 0',
+              background: '#fff',
+              color: '#dc2626',
+              border: '2px solid #dc2626',
+              borderRadius: 10,
+              padding: '8px 18px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              fontSize: 16,
+              boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+              alignSelf: 'flex-start',
+              display: 'inline-block',
+            }}
+            aria-label="Back to Dashboard"
+          >
+            &larr; Back
+          </button>
           <div style={styles.header}>
             <h1 style={styles.headerTitle}>Profile Settings</h1>
             <p style={styles.headerSubtitle}>Manage your account information and preferences</p>
           </div>
-
           <div style={styles.content}>
             {/* Top profile section */}
             <div style={s.topRow}>
