@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import logo from "../assets/prime-logo.png";
 import { getAuth } from "firebase/auth";
+import { API_ENDPOINTS } from "../config/api";
 
 export default function EditVendor({ isAdmin }) {
   const { vendorId } = useParams();
@@ -66,7 +67,7 @@ export default function EditVendor({ isAdmin }) {
           return;
         }
 
-        const res = await fetch(`http://localhost:9090/api/vendors/${vendorId}`, {
+        const res = await fetch(API_ENDPOINTS.VENDORS.BY_ID(vendorId), {
           headers: { Authorization: `Bearer ${token}` }
         });
 
@@ -134,7 +135,7 @@ export default function EditVendor({ isAdmin }) {
       const payload = { ...formData };
       if (!isAdmin) delete payload.price;
 
-      const res = await fetch(`http://localhost:9090/api/vendors/${vendorId}`, {
+      const res = await fetch(API_ENDPOINTS.VENDORS.BY_ID(vendorId), {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_ENDPOINTS, apiCall } from "../config/api";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -9,9 +10,8 @@ export default function Login() {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch("http://localhost:9090/api/auth/login", {
+      const response = await apiCall(API_ENDPOINTS.AUTH.LOGIN, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
 

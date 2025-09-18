@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import logo from "../assets/prime-logo.png";
 import { getAuth } from "firebase/auth";
 import InfoTooltip from "./InfoTooltip";
+import { API_ENDPOINTS } from "../config/api";
 
 export default function VendorList({ isAdmin }) {
   const [vendors, setVendors] = useState([]);
@@ -28,7 +29,7 @@ export default function VendorList({ isAdmin }) {
 
       console.log("Sending token:", token.slice(0, 16) + "...");
 
-      const response = await fetch("http://localhost:9090/api/vendors", {
+      const response = await fetch(API_ENDPOINTS.VENDORS.BASE, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -77,7 +78,7 @@ export default function VendorList({ isAdmin }) {
     }
 
     try {
-      const res = await fetch(`http://localhost:9090/api/vendors/${id}`, {
+      const res = await fetch(API_ENDPOINTS.VENDORS.BY_ID(id), {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });

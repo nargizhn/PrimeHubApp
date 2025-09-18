@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 // import { auth } from "../firebase"; // kullanılmıyor
 import { getAuth } from "firebase/auth";
+import { API_ENDPOINTS } from "../config/api";
 import logo from "../assets/prime-logo.png";
 import { FaUser, FaList, FaStar } from "react-icons/fa";
 
@@ -46,7 +47,7 @@ const Dashboard = ({ setUser }) => {
         return;
       }
 
-      const res = await fetch("http://localhost:9090/api/vendors", {
+      const res = await fetch(API_ENDPOINTS.VENDORS.BASE, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",

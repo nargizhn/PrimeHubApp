@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import logo from '../assets/prime-logo.png';
 import { getAuth } from "firebase/auth";
+import { API_ENDPOINTS } from "../config/api";
 
 export default function AddVendor() {
   const navigate = useNavigate();
@@ -82,7 +83,7 @@ export default function AddVendor() {
 
     setSubmitting(true);
     try {
-      const res = await fetch("http://localhost:9090/api/vendors", {
+      const res = await fetch(API_ENDPOINTS.VENDORS.BASE, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

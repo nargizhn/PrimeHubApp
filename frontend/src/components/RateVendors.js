@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { getAuth } from "firebase/auth";
 import { Link } from "react-router-dom";
+import { API_ENDPOINTS } from "../config/api";
 
 const RateVendors = () => {
   const [vendors, setVendors] = useState([]);
@@ -16,7 +17,7 @@ const RateVendors = () => {
         return;
       }
 
-      const res = await fetch("http://localhost:9090/api/vendors", {
+      const res = await fetch(API_ENDPOINTS.VENDORS.BASE, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -67,7 +68,7 @@ const RateVendors = () => {
         return;
       }
 
-      const res = await fetch(`http://localhost:9090/api/vendors/${vendor.id}/rating`, {
+      const res = await fetch(API_ENDPOINTS.VENDORS.RATING(vendor.id), {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${token}`,
