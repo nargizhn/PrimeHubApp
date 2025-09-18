@@ -21,7 +21,7 @@ function App() {
   const isAdmin = true;
 
   return (
-    <Router>
+    <Router basename={process.env.PUBLIC_URL}>
       <Routes>
         <Route path="/login" element={<LoginSignup setUser={setUser} isLogin={true} />} />
         <Route path="/signup" element={<LoginSignup setUser={setUser} isLogin={false} />} />
