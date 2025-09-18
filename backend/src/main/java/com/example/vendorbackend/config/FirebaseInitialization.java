@@ -34,7 +34,7 @@ public class FirebaseInitialization {
 
             FirebaseOptions options = FirebaseOptions.builder()
                     .setCredentials(creds)
-                    .setProjectId("primehub-1c5f6") // güvenli eşleşme
+                    .setProjectId("primehub-vendor-tool") // Match current GCloud project
                     .build();
 
             FirebaseApp.initializeApp(options);
