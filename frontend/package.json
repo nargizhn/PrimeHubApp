@@ -1,7 +1,6 @@
 {
   "name": "prime-agency",
   "version": "0.1.0",
-  "homepage": "https://nargizhn.github.io/PrimeHubApp/",
   "private": true,
   "dependencies": {
     "@testing-library/dom": "^10.4.1",
