@@ -17,7 +17,10 @@ public class CorsFilterConfig {
     @Order(Ordered.HIGHEST_PRECEDENCE)
     public CorsFilter corsFilter() {
         CorsConfiguration cfg = new CorsConfiguration();
-        cfg.setAllowedOrigins(List.of("http://localhost:3000"));
+        cfg.setAllowedOrigins(List.of(
+                "http://localhost:3000",
+                "https://nargizhn.github.io"
+        ));
         cfg.setAllowedMethods(List.of("GET","POST","PUT","DELETE","OPTIONS"));
         cfg.setAllowedHeaders(List.of("Authorization","Content-Type","Accept","X-Requested-With"));
         cfg.setExposedHeaders(List.of("Location"));
