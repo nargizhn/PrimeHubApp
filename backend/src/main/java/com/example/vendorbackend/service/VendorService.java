@@ -44,6 +44,8 @@ public class VendorService {
                     : v.getId();
 
             v.setId(id);
+            v.setRating(0.0); // Başlangıçta 0 puan
+            v.setRatingCount(0); // Başlangıçta 0 puan sayısı
             // Belge id’sini biz belirleyelim ki sonra kolay silelim/güncelleyelim
             ApiFuture<WriteResult> write = db().collection(COLLECTION).document(id).set(v);
             write.get(); // tamamlanmasını bekleyelim
@@ -88,7 +90,34 @@ public class VendorService {
         }
     }
 
-    public Vendor updateRating(String id, double r) {
-        return null;
+    public Vendor updateRating(String id, double newRating) {
+        try {
+            Optional<Vendor> optVendor = findById(id);
+            if (optVendor.isEmpty()) {
+                throw new RuntimeException("Vendor not found with id: " + id);
+            }
+            
+            Vendor vendor = optVendor.get();
+            
+            // Calculate new average rating
+            double currentRating = vendor.getRating() != null ? vendor.getRating() : 0.0;
+            int currentCount = vendor.getRatingCount() != null ? vendor.getRatingCount() : 0;
+            
+            // Calculate new average: (current_total + new_rating) / (count + 1)
+            double currentTotal = currentRating * currentCount;
+            double newTotal = currentTotal + newRating;
+            int newCount = currentCount + 1;
+            double newAverageRating = newTotal / newCount;
+            
+            vendor.setRating(newAverageRating);
+            vendor.setRatingCount(newCount);
+            
+            // Update in Firestore
+            db().collection(COLLECTION).document(id).set(vendor).get();
+            return vendor;
+            
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Failed to update rating in Firestore", e);
+        }
     }
 }

@@ -104,8 +104,21 @@ public class VendorController {
         }
 
         Vendor v = opt.get();
-        v.setRating(r);
-        Vendor saved = vendorService.create(v); // upsert
+        
+        // Calculate new average rating
+        double currentRating = v.getRating() != null ? v.getRating() : 0.0;
+        int currentCount = v.getRatingCount() != null ? v.getRatingCount() : 0;
+
+        // Calculate new average: (current_total + new_rating) / (count + 1)
+        double currentTotal = currentRating * currentCount;
+        double newTotal = currentTotal + r;
+        int newCount = currentCount + 1;
+        double newAverageRating = newTotal / newCount;
+        
+        v.setRating(newAverageRating);
+        v.setRatingCount(newCount);
+        v.setId(id); // ID'yi koru
+        Vendor saved = vendorService.update(id, v); // Use update instead of create
         return ResponseEntity.ok(saved);
     }
 }

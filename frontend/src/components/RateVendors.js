@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { getAuth } from "firebase/auth";
 import { Link } from "react-router-dom";
-import { API_ENDPOINTS } from "../config/api";
+import { API_ENDPOINTS, formatRating } from "../config/api";
 
 const RateVendors = () => {
   const [vendors, setVendors] = useState([]);
@@ -233,7 +233,7 @@ const RateVendors = () => {
                     ))}
                   </td>
                   <td style={{ padding: 10, fontWeight: 600, color: "#d90000" }}>
-                    {v.rating ?? "-"}
+                                      <td>{formatRating(v.rating, v.ratingCount)}</td>
                   </td>
                   <td style={{ padding: 10 }}>
                     <button

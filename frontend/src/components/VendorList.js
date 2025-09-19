@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import logo from "../assets/prime-logo.png";
 import { getAuth } from "firebase/auth";
 import InfoTooltip from "./InfoTooltip";
-import { API_ENDPOINTS } from "../config/api";
+import { API_ENDPOINTS, formatRating } from "../config/api";
 
 export default function VendorList({ isAdmin }) {
   const [vendors, setVendors] = useState([]);
@@ -265,7 +265,7 @@ export default function VendorList({ isAdmin }) {
                   <td style={{ padding: 12 }}>{v.representative}</td>
                   <td style={{ padding: 12 }}>{v.name}</td>
                   <td style={{ padding: 12 }}>{v.contact}</td>
-                  <td style={{ padding: 12 }}>{v.rating ?? ""}</td>
+                  <td style={{ padding: 12 }}>{formatRating(v.rating, v.ratingCount)}</td>
                   {isAdmin && <td style={{ padding: 12 }}>{v.price ?? ""}</td>}
                   <td style={{ padding: 12 }}>
                     <div

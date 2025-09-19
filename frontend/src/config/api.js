@@ -33,3 +33,15 @@ export const apiCall = async (url, options = {}) => {
 
   return fetch(url, defaultOptions);
 };
+
+// Helper function to format rating display
+export const formatRating = (rating, ratingCount = 0) => {
+  // Check if rating is 0, null, undefined, or no ratings yet
+  if (!rating || rating === 0 || ratingCount === 0) {
+    return "Not rated yet";
+  }
+  
+  // Format to 3 significant figures
+  const formatted = Number(rating.toPrecision(3));
+  return `${formatted} (${ratingCount} ${ratingCount === 1 ? 'rating' : 'ratings'})`;
+};

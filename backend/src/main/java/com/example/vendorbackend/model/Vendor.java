@@ -27,7 +27,8 @@ public class Vendor {
     private String bankAccount;
 
     // ⭐ Ortalama puan (0–5 arası)
-    private Double rating;
+    private Double rating = 0.0;
+    private Integer ratingCount = 0; // ⭐ Puan sayısı, başlangıçta 0
 
     // Ortalama hesaplamak için kümülatif alanlar
     private Long ratingCount;
@@ -72,11 +73,9 @@ public class Vendor {
     public Double getRating() { return rating; }
     public void setRating(Double rating) { this.rating = rating; }
 
-    public Long getRatingCount() { return ratingCount; }
-    public void setRatingCount(Long ratingCount) { this.ratingCount = ratingCount; }
-
-    public Double getRatingSum() { return ratingSum; }
-    public void setRatingSum(Double ratingSum) { this.ratingSum = ratingSum; }
+    public Integer getRatingCount() { return ratingCount; }
+    public void setRatingCount(Integer ratingCount) { this.ratingCount = ratingCount; }
+    public void increaseRatingCount() { this.ratingCount++; }
 
     public List<String> getImages() { return images; }
     public void setImages(List<String> images) { this.images = images; }
