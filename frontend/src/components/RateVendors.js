@@ -188,7 +188,7 @@ const RateVendors = () => {
                         style={{
                           background: "none",
                           border: "none",
-                          color: sel.price === num ? "#d90000" : "#ccc",
+                          color: sel.price >= num ? "#d90000" : "#ccc",
                           fontSize: 20,
                           cursor: "pointer",
                         }}
@@ -205,7 +205,7 @@ const RateVendors = () => {
                         style={{
                           background: "none",
                           border: "none",
-                          color: sel.time === num ? "#d90000" : "#ccc",
+                          color: sel.time >= num ? "#d90000" : "#ccc",
                           fontSize: 20,
                           cursor: "pointer",
                         }}
@@ -222,7 +222,7 @@ const RateVendors = () => {
                         style={{
                           background: "none",
                           border: "none",
-                          color: sel.quality === num ? "#d90000" : "#ccc",
+                          color: sel.quality >= num ? "#d90000" : "#ccc",
                           fontSize: 20,
                           cursor: "pointer",
                         }}
