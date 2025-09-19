@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Camera, Eye, EyeOff, User } from 'lucide-react';
 import {
   getAuth,
@@ -263,29 +263,37 @@ export default function UserProfilePage({ email }) {
     <div style={styles.container}>
       <div style={styles.wrapper}>
         <div style={styles.card}>
-          {/* Back Button */}
-          <button
-            onClick={() => navigate('/dashboard')}
-            style={{
-              margin: '16px 0 0 0',
-              background: '#fff',
-              color: '#dc2626',
-              border: '2px solid #dc2626',
-              borderRadius: 10,
-              padding: '8px 18px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              fontSize: 16,
-              boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-              alignSelf: 'flex-start',
-              display: 'inline-block',
-            }}
-            aria-label="Back to Dashboard"
-          >
-            &larr; Back
-          </button>
+          <h1 style={{
+            marginBottom: 20,
+            color: "#000",
+            fontSize: "2rem",
+            fontWeight: "bold",
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+          }}>
+            <Link
+              to="/dashboard"
+              style={{
+                textDecoration: "none",
+                cursor: "pointer",
+                userSelect: "none",
+                padding: "4px 8px",
+                borderRadius: 8,
+                border: "1px solid #e5e7eb",
+                background: "#fff",
+                boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+                color: "inherit",
+              }}
+              title="Back to Dashboard"
+              aria-label="Back to Dashboard"
+              role="button"
+            >
+              &larr;
+            </Link>
+            Profile <span style={{ color: "#dc2626" }}>Settings</span>
+          </h1>
           <div style={styles.header}>
-            <h1 style={styles.headerTitle}>Profile Settings</h1>
             <p style={styles.headerSubtitle}>Manage your account information and preferences</p>
           </div>
           <div style={styles.content}>
