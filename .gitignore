@@ -5,6 +5,16 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Java/Maven
+backend/target/
+*.jar
+*.war
+*.ear
+*.class
+.classpath
+.project
+.settings/
+
 # Dependency directories
 node_modules/
 

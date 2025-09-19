@@ -28,11 +28,9 @@ public class Vendor {
 
     // ⭐ Ortalama puan (0–5 arası)
     private Double rating = 0.0;
-    private Integer ratingCount = 0; // ⭐ Puan sayısı, başlangıçta 0
-
+    
     // Ortalama hesaplamak için kümülatif alanlar
-    private Long ratingCount;
-    private Double ratingSum;
+    private Integer ratingCount = 0; // ⭐ Puan sayısı, başlangıçta 0
 
     @ElementCollection
     @CollectionTable(name = "vendor_images", joinColumns = @JoinColumn(name = "vendor_id"))
