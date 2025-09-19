@@ -50,6 +50,11 @@ function App() {
         <Route 
           path="/add-vendor" 
           element={<AddVendor />} />
+        {/* Catch-all route for non-existent paths */}
+        <Route 
+          path="*" 
+          element={<Navigate to="/" replace />} 
+        />
       </Routes>
     </Router>
   );
