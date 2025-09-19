@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 // import { auth } from "../firebase"; // kullanılmıyor
 import { getAuth } from "firebase/auth";
+import { useAuth } from "../auth-context";
 import { API_ENDPOINTS } from "../config/api";
 import logo from "../assets/prime-logo.png";
 import { FaUser, FaList, FaStar } from "react-icons/fa";
@@ -14,6 +15,7 @@ const photos = [photo1, photo2, photo3];
 
 const Dashboard = ({ setUser }) => {
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [metrics, setMetrics] = useState({
     total: 0,
@@ -21,10 +23,12 @@ const Dashboard = ({ setUser }) => {
     newRequests: 0, // heuristic: agreementNumber boş olanlar
   });
 
-  const handleLogout = () => {
-    localStorage.removeItem("loggedInUser"); // mevcut akışa dokunma
-    setUser(null);
-  navigate("/dashboard"); // go to dashboard instead of login
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } finally {
+      navigate("/login", { replace: true });
+    }
   };
 
   // Carousel

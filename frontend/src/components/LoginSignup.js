@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../auth-context";
 import logo from '../assets/prime-logo.png';
 import {
   getAuth,
@@ -22,9 +23,15 @@ function LoginSignup() {
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
   const auth = getAuth();
+  const { user } = useAuth();
 
   // 🔁 Token yenilendikçe otomatik logla (background refresh dahil)
   useEffect(() => {
+    // Eğer zaten login ise formu göstermeyelim
+    if (user) {
+      navigate('/dashboard', { replace: true });
+      return;
+    }
     const unsub = onIdTokenChanged(auth, async (user) => {
       if (!user) return;
       try {
@@ -37,7 +44,7 @@ function LoginSignup() {
       }
     });
     return () => unsub();
-  }, [auth]);
+  }, [auth, user, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -88,7 +95,7 @@ function LoginSignup() {
 
 
 
-        navigate("/dashboard");
+        navigate("/dashboard", { replace: true });
       }
     } catch (error) {
       console.error("Auth error:", error);

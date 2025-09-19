@@ -21,27 +21,27 @@ function App() {
   return (
     <Router basename={process.env.PUBLIC_URL}>
       <Routes>
-        <Route path="/login" element={<LoginSignup />} />
-        <Route path="/signup" element={<LoginSignup isLogin={false} />} />
+        <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <LoginSignup />} />
+        <Route path="/signup" element={user ? <Navigate to="/dashboard" replace /> : <LoginSignup isLogin={false} />} />
         <Route
           path="/"
-          element={<LoginSignup />}
+          element={user ? <Navigate to="/dashboard" replace /> : <LoginSignup />}
         />
         <Route
           path="/dashboard"
-          element={user ? <Dashboard /> : <Navigate to="/" />}
+          element={user ? <Dashboard /> : <Navigate to="/" replace />}
         />
         <Route
           path="/profile"
-          element={user ? <Profile /> : <Navigate to="/" />}
+          element={user ? <Profile /> : <Navigate to="/" replace />}
         />
         <Route
           path="/vendor-list"
-          element={user ? <VendorList /> : <Navigate to="/" />}
+          element={user ? <VendorList /> : <Navigate to="/" replace />}
         />
         <Route
           path="/rate-vendors"
-          element={user ? <RateVendors /> : <Navigate to="/" />}
+          element={user ? <RateVendors /> : <Navigate to="/" replace />}
         />
         <Route 
           path="/edit-vendor/:vendorId" 

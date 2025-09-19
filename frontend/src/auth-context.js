@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth';
 
 const AuthContext = createContext();
 
@@ -20,8 +20,20 @@ export function AuthProvider({ children }) {
     return () => unsub();
   }, []);
 
+  const logout = async () => {
+    const auth = getAuth();
+    try {
+      await signOut(auth);
+    } finally {
+      try { localStorage.removeItem('token'); } catch {}
+      try { localStorage.removeItem('userProfile'); } catch {}
+      try { sessionStorage.clear(); } catch {}
+      setUser(null);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, checking }}>
+    <AuthContext.Provider value={{ user, checking, logout }}>
       {children}
     </AuthContext.Provider>
   );

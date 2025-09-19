@@ -29,6 +29,10 @@ public class Vendor {
     // ⭐ Ortalama puan (0–5 arası)
     private Double rating;
 
+    // Ortalama hesaplamak için kümülatif alanlar
+    private Long ratingCount;
+    private Double ratingSum;
+
     @ElementCollection
     @CollectionTable(name = "vendor_images", joinColumns = @JoinColumn(name = "vendor_id"))
     @Column(name = "image_url")
@@ -67,6 +71,12 @@ public class Vendor {
 
     public Double getRating() { return rating; }
     public void setRating(Double rating) { this.rating = rating; }
+
+    public Long getRatingCount() { return ratingCount; }
+    public void setRatingCount(Long ratingCount) { this.ratingCount = ratingCount; }
+
+    public Double getRatingSum() { return ratingSum; }
+    public void setRatingSum(Double ratingSum) { this.ratingSum = ratingSum; }
 
     public List<String> getImages() { return images; }
     public void setImages(List<String> images) { this.images = images; }
