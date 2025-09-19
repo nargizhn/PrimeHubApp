@@ -24,7 +24,7 @@ const Dashboard = ({ setUser }) => {
   const handleLogout = () => {
     localStorage.removeItem("loggedInUser"); // mevcut akışa dokunma
     setUser(null);
-    navigate("/"); // login'e dön
+  navigate("/dashboard"); // go to dashboard instead of login
   };
 
   // Carousel

@@ -63,7 +63,7 @@ export default function EditVendor({ isAdmin }) {
         const token = user ? await user.getIdToken(true) : localStorage.getItem("token");
         if (!token) {
           alert("User not authenticated! Please login.");
-          navigate("/login");
+          navigate("/dashboard");
           return;
         }
 
@@ -86,7 +86,7 @@ export default function EditVendor({ isAdmin }) {
           return;
         } else if (res.status === 401) {
           alert("Unauthorized! Please login again.");
-          navigate("/login");
+          navigate("/dashboard");
           return;
         } else {
           const t = await res.text().catch(() => "");
@@ -149,7 +149,7 @@ export default function EditVendor({ isAdmin }) {
         navigate("/vendor-list");
       } else if (res.status === 401) {
         alert("Unauthorized! Please login again.");
-        navigate("/login");
+  navigate("/dashboard");
       } else {
         const t = await res.text().catch(() => "");
         alert("Failed to update vendor: " + (t || `${res.status} ${res.statusText}`));

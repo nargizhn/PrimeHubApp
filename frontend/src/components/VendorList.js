@@ -154,7 +154,7 @@ export default function VendorList({ isAdmin }) {
   }}
 >
   <span
-    onClick={() => navigate("/")}
+  onClick={() => navigate("/dashboard")}
     style={{
       cursor: "pointer",
       userSelect: "none",

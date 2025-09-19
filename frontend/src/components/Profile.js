@@ -265,7 +265,7 @@ export default function UserProfilePage({ email }) {
         <div style={styles.card}>
           {/* Back Button */}
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/dashboard')}
             style={{
               margin: '16px 0 0 0',
               background: '#fff',
@@ -293,7 +293,7 @@ export default function UserProfilePage({ email }) {
             <div style={s.topRow}>
               <div style={styles.profileImageContainer}>
                 <div style={styles.avatarWrapper}>
-                  <div style={styles.avatar}>
+                  <div stylnpe={styles.avatar}>
                     {user.profileImage ? (
                       <img src={user.profileImage} alt="Profile" style={styles.avatarImage} />
                     ) : (

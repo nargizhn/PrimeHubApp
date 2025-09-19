@@ -11,7 +11,7 @@ import {
 import { db } from "../firebase";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
-function LoginSignup({ setUser }) {
+function LoginSignup() {
   const [isSignUp, setIsSignUp] = useState(false);
 
   // ✅ Sign Up alanları eklendi
@@ -86,11 +86,7 @@ function LoginSignup({ setUser }) {
         // İsim/soyisim: displayName varsa parçala
         const [dispFirst = "", dispLast = ""] = (user.displayName || "").split(" ");
 
-        setUser({
-          email: user.email,
-          firstName: dispFirst,
-          lastName: dispLast
-        });
+
 
         navigate("/dashboard");
       }
