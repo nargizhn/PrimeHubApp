@@ -116,7 +116,7 @@ const RateVendors = () => {
         }}
       >
         <Link
-          to="/"
+          to="/dashboard"
           style={{
             textDecoration: "none",
             cursor: "pointer",
