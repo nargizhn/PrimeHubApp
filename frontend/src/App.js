@@ -9,55 +9,51 @@ import LoginSignup from "./components/LoginSignup";
 import EditVendor from "./components/EditVendor";
 import AddVendor from "./components/addVendor";
 import { useAuth } from "./auth-context";
+import Footer from "./components/Footer"; // ✅ eklendi
 
 function App() {
-  const { user, checking } = useAuth();
-  const isAdmin = true;
+    const { user, checking } = useAuth();
+    const isAdmin = true;
 
-  if (checking) {
-    return <div style={{textAlign:'center',marginTop:60,fontSize:22}}>Loading...</div>;
-  }
+    if (checking) {
+        return <div style={{textAlign:'center',marginTop:60,fontSize:22}}>Loading...</div>;
+    }
 
-  return (
-    <Router basename={process.env.PUBLIC_URL}>
-      <Routes>
-        <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <LoginSignup />} />
-        <Route path="/signup" element={user ? <Navigate to="/dashboard" replace /> : <LoginSignup isLogin={false} />} />
-        <Route
-          path="/"
-          element={user ? <Navigate to="/dashboard" replace /> : <LoginSignup />}
-        />
-        <Route
-          path="/dashboard"
-          element={user ? <Dashboard /> : <Navigate to="/" replace />}
-        />
-        <Route
-          path="/profile"
-          element={user ? <Profile /> : <Navigate to="/" replace />}
-        />
-        <Route
-          path="/vendor-list"
-          element={user ? <VendorList /> : <Navigate to="/" replace />}
-        />
-        <Route
-          path="/rate-vendors"
-          element={user ? <RateVendors /> : <Navigate to="/" replace />}
-        />
-        <Route 
-          path="/edit-vendor/:vendorId" 
-          element={<EditVendor isAdmin={isAdmin} />} 
-        />
-        <Route 
-          path="/add-vendor" 
-          element={<AddVendor />} />
-        {/* Catch-all route for non-existent paths */}
-        <Route 
-          path="*" 
-          element={<Navigate to="/" replace />} 
-        />
-      </Routes>
-    </Router>
-  );
+    // Guard'lar aynı kalsın
+    const Public = ({ children }) => (user ? <Navigate to="/dashboard" replace /> : children);
+    const Protected = ({ children }) => (user ? children : <Navigate to="/login" replace />);
+
+    return (
+        <Router basename={process.env.PUBLIC_URL}>
+            {/* sayfayı dikeyde doldur + footer'ı alta sabitle */}
+            <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#fff" }}>
+                <main style={{ flex: 1 }}>
+                    <Routes>
+                        {/* kök her zaman login'e */}
+                        <Route path="/" element={<Navigate to="/login" replace />} />
+
+                        {/* Public */}
+                        <Route path="/login"  element={<Public><LoginSignup /></Public>} />
+                        <Route path="/signup" element={<Public><LoginSignup isLogin={false} /></Public>} />
+
+                        {/* Protected */}
+                        <Route path="/dashboard"    element={<Protected><Dashboard /></Protected>} />
+                        <Route path="/profile"      element={<Protected><Profile /></Protected>} />
+                        <Route path="/vendor-list"  element={<Protected><VendorList /></Protected>} />
+                        <Route path="/rate-vendors" element={<Protected><RateVendors /></Protected>} />
+                        <Route path="/edit-vendor/:vendorId" element={<Protected><EditVendor isAdmin={isAdmin} /></Protected>} />
+                        <Route path="/add-vendor"   element={<Protected><AddVendor /></Protected>} />
+
+                        {/* bilinmeyen rota */}
+                        <Route path="*" element={<Navigate to="/login" replace />} />
+                    </Routes>
+                </main>
+
+                {/* ✅ Global footer */}
+                <Footer />
+            </div>
+        </Router>
+    );
 }
 
 export default App;
