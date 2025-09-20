@@ -145,7 +145,7 @@ function LoginSignup() {
         </h2>
 
         <form onSubmit={handleSubmit}>
-          {/* 🔹 Sign Up ise ad/soyad alanlarını göster */}
+          {/* Sign Up fields */}
           {isSignUp && (
             <>
               <div style={{ marginBottom: 12 }}>
@@ -257,7 +257,7 @@ function LoginSignup() {
             {isSignUp ? 'Already have an account?' : "Don't have an account?"}
           </span>
           <button
-            onClick={() => { setIsSignUp(!isSignUp); /* alanları temizle */ setFirstName(''); setLastName(''); setEmail(''); setPassword(''); }}
+            onClick={() => { setIsSignUp(!isSignUp); setFirstName(''); setLastName(''); setEmail(''); setPassword(''); }}
             style={{
               marginLeft: 8,
               background: 'none',

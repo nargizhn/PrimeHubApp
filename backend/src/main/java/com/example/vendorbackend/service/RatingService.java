@@ -1,6 +1,5 @@
 package com.example.vendorbackend.service;
 
-import com.example.vendorbackend.model.Rating;
 import com.example.vendorbackend.model.Vendor;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.*;

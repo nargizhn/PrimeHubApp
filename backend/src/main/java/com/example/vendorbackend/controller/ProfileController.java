@@ -19,7 +19,7 @@ public class ProfileController {
 
     @PostMapping
     public Object updateProfile(HttpServletRequest request, @RequestBody Map<String,String> updates) {
-        String userId = (String) request.getAttribute("userId");
+        // String userId = (String) request.getAttribute("userId");
         // Firestore update logic
         return Map.of("status", "success");
     }

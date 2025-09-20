@@ -21,7 +21,7 @@ public class RatingController {
 
     @GetMapping
     public Object getUnratedVendors(HttpServletRequest request) {
-        String userId = (String) request.getAttribute("userId");
+        // String userId = (String) request.getAttribute("userId");
         // Firestore'dan userId için unrated vendors döndür (gelecekte)
         return List.of();
     }
