@@ -1,7 +1,31 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 // import { auth } from "../firebase"; // kullanılmıyor
-import { getAuth } from "firebase/auth";
+import {       <main style={{
+        ...styles.main,
+        ...(isMobile ? {
+          marginTop: '60px',
+          padding: '20px',
+          marginLeft: '0',
+        } : {})
+      }}>
+        <h1 style={{
+          ...styles.heading,
+          ...(isMobile ? { fontSize: '24px' } : {})
+        }}>Welcome Back 👋</h1>
+        <p style={styles.subheading}>Here's what's happening with vendors today.</p>
+
+        <div style={styles.contentContainer}>
+          {/* Carousel */}
+          <div style={{
+            ...styles.carousel,
+            ...(isMobile ? { padding: '20px' } : {})
+          }}>
+            <h2 style={{ marginBottom: 5 }}>Recent Events</h2>
+            <div style={{
+              ...styles.carouselBox,
+              ...(isMobile ? { height: '200px' } : {})
+            }}> from "firebase/auth";
 import { useAuth } from "../auth-context";
 import { API_ENDPOINTS } from "../config/api";
 import logo from "../assets/prime-logo.png";
@@ -111,66 +135,8 @@ const Dashboard = ({ setUser }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Get responsive styles
-  const getResponsiveStyles = () => ({
-    container: {
-      ...styles.container,
-      ...(isMobile ? {
-        flexDirection: 'column',
-      } : {})
-    },
-    sidebar: {
-      ...styles.sidebar,
-      ...(isMobile ? {
-        position: 'fixed',
-        top: 0,
-        left: showMobileMenu ? 0 : '-100%',
-        height: '100vh',
-        width: '280px',
-        zIndex: 1001,
-        transition: 'left 0.3s ease-in-out',
-        paddingTop: '20px',
-      } : {})
-    },
-    main: {
-      ...styles.main,
-      ...(isMobile ? {
-        marginTop: '60px',
-        padding: '20px',
-        marginLeft: '0',
-      } : {})
-    },
-    carousel: {
-      ...styles.carousel,
-      ...(isMobile ? {
-        padding: '20px',
-      } : {})
-    },
-    carouselBox: {
-      ...styles.carouselBox,
-      ...(isMobile ? {
-        height: '200px',
-      } : {})
-    },
-    grid: {
-      ...styles.grid,
-      ...(isMobile ? {
-        flexDirection: 'column',
-        gap: '15px',
-      } : {})
-    },
-    heading: {
-      ...styles.heading,
-      ...(isMobile ? {
-        fontSize: '24px',
-      } : {})
-    }
-  });
-
-  const responsiveStyles = getResponsiveStyles();
-
   return (
-    <div style={responsiveStyles.container}>
+    <div style={styles.container}>
       {/* Mobile Header - only shows on mobile */}
       {isMobile && (
         <div style={styles.mobileHeader}>
@@ -192,14 +158,19 @@ const Dashboard = ({ setUser }) => {
       )}
 
       {/* Sidebar */}
-      <aside style={responsiveStyles.sidebar}>
-        <div style={{
-          ...styles.logoContainer,
-          ...(isMobile ? {
-            marginTop: '20px',
-            marginBottom: '30px'
-          } : {})
-        }}>
+      <aside style={{
+        ...styles.sidebar,
+        ...(isMobile ? {
+          position: 'fixed',
+          top: 0,
+          left: showMobileMenu ? 0 : '-100%',
+          height: '100vh',
+          width: '280px',
+          zIndex: 1001,
+          transition: 'left 0.3s ease-in-out',
+        } : {})
+      }}>
+        <div style={styles.logoContainer}>
           <img src={logo} alt="Logo" style={styles.logo} />
           <h2 style={styles.brand}>Prime Vendor Dashboard</h2>
         </div>
@@ -219,15 +190,15 @@ const Dashboard = ({ setUser }) => {
         </nav>
       </aside>
 
-      <main style={responsiveStyles.main}>
-        <h1 style={responsiveStyles.heading}>Welcome Back 👋</h1>
-        <p style={styles.subheading}>Here's what's happening with vendors today.</p>
+      <main style={styles.main}>
+        <h1 style={styles.heading}>Welcome Back 👋</h1>
+        <p style={styles.subheading}>Here’s what’s happening with vendors today.</p>
 
         <div style={styles.contentContainer}>
           {/* Carousel */}
-          <div style={responsiveStyles.carousel}>
+          <div style={styles.carousel}>
             <h2 style={{ marginBottom: 5 }}>Recent Events</h2>
-            <div style={responsiveStyles.carouselBox}>
+            <div style={styles.carouselBox}>
               {photos.map((photo, index) => (
                 <img
                   key={index}
@@ -245,7 +216,7 @@ const Dashboard = ({ setUser }) => {
           </div>
 
           {/* Cards */}
-          <div style={responsiveStyles.grid}>
+          <div style={styles.grid}>
             <div style={styles.card}>
               <h3>Total Vendors</h3>
               <p>{metrics.total}</p>
@@ -265,7 +236,6 @@ const Dashboard = ({ setUser }) => {
   );
 };
 
-// Original desktop styles preserved exactly as they were
 const styles = {
   container: {
     display: "flex",
@@ -274,44 +244,6 @@ const styles = {
     backgroundColor: "#f5f5f5",
     color: "#1c1c1c",
   },
-  
-  // Mobile-only styles
-  mobileHeader: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: '60px',
-    backgroundColor: '#000',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '0 20px',
-    zIndex: 1000,
-  },
-  mobileMenuButton: {
-    background: 'none',
-    border: 'none',
-    color: '#fff',
-    fontSize: '24px',
-    cursor: 'pointer',
-    padding: '10px',
-  },
-  mobileHeaderLogo: {
-    height: '40px',
-    width: 'auto',
-  },
-  mobileOverlay: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    zIndex: 1000,
-  },
-  
-  // Original desktop styles - unchanged
   sidebar: {
     width: "250px",
     backgroundColor: "#000",
