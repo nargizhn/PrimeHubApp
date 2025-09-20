@@ -1,28 +1,37 @@
+// src/components/Profile.js
+// src/components/Profile.js — IMPORTS (fixed)
 import React, { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Camera, Eye, EyeOff, User } from 'lucide-react';
+
 import {
   getAuth,
   onAuthStateChanged,
   updatePassword,
   reauthenticateWithCredential,
   EmailAuthProvider,
+  updateProfile,
 } from 'firebase/auth';
-import { db } from '../firebase';
-import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+
+import { db, storage } from '../firebase'; // ✅ tek satırdan al
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'; // ✅ uploadBytes importlu
+
 
 export default function UserProfilePage({ email }) {
-  const navigate = useNavigate();
   const [user, setUser] = useState({
     uid: '',
     firstName: '',
     lastName: '',
     email: email || '',
-    profileImage: null,
+    profileImage: null, // render edilecek URL
     joinDate: '',
   });
 
-  // Inline name edit (simple)
+  // Seçilen dosyayı ayrı sakla (persist için gerekli)
+  const [selectedFile, setSelectedFile] = useState(null);
+
+  // Inline name edit
   const [editing, setEditing] = useState(false);
   const [first, setFirst] = useState('');
   const [last, setLast] = useState('');
@@ -39,8 +48,10 @@ export default function UserProfilePage({ email }) {
     new: false,
     confirm: false,
   });
+
   const [busy, setBusy] = useState(false);
 
+  // ---- Load profile (Firestore first, then Auth)
   useEffect(() => {
     const auth = getAuth();
     const unsubscribe = onAuthStateChanged(auth, async (fb) => {
@@ -49,22 +60,29 @@ export default function UserProfilePage({ email }) {
       let firstName = '';
       let lastName = '';
       let joinDate = '';
+      let photoURL = fb.photoURL || null;
 
       try {
-        const ref = doc(db, 'users', fb.uid);
-        const snap = await getDoc(ref);
+        const refDoc = doc(db, 'users', fb.uid);
+        const snap = await getDoc(refDoc);
 
         if (snap.exists()) {
           const data = snap.data();
           firstName = data.firstName || firstName;
           lastName = data.lastName || lastName;
+
+          // Firestore’daki alan varsa onu tercih et
+          const fsPhoto =
+            data.photoURL || data.profileImage || data.profileImageUrl || null;
+          if (fsPhoto) photoURL = fsPhoto;
+
           if (data.createdAt?.toDate) {
             joinDate = data.createdAt.toDate().toLocaleDateString();
           }
         } else {
-          // İlk girişte belge oluştur (merge-friendly)
+          // İlk gelişte dokümanı oluştur
           await setDoc(
-            ref,
+            refDoc,
             {
               email: fb.email || '',
               createdAt: serverTimestamp(),
@@ -72,18 +90,18 @@ export default function UserProfilePage({ email }) {
             { merge: true }
           );
         }
-      } catch {
-        // sessiz geç
+      } catch (e) {
+        console.warn('Profile load warning:', e);
       }
 
-      // Eksikse displayName'den türet
+      // İsim yoksa displayName’den türet
       if ((!firstName || !lastName) && fb.displayName) {
         const parts = fb.displayName.split(' ');
         firstName = firstName || parts[0] || '';
         lastName = lastName || parts.slice(1).join(' ') || '';
       }
 
-      // Join date yoksa Auth metadata'dan
+      // Join date yoksa Auth metadata kullan
       if (!joinDate) {
         joinDate = fb.metadata?.creationTime
           ? new Date(fb.metadata.creationTime).toLocaleDateString()
@@ -97,7 +115,7 @@ export default function UserProfilePage({ email }) {
         firstName,
         lastName,
         email: emailAddr,
-        profileImage: null,
+        profileImage: photoURL || null,
         joinDate,
       });
 
@@ -108,13 +126,12 @@ export default function UserProfilePage({ email }) {
     return () => unsubscribe();
   }, [email]);
 
-  // Save inline name -> Firestore merge
+  // ---- Name save
   const saveName = async () => {
     if (!user.uid) return;
     try {
-      const ref = doc(db, 'users', user.uid);
       await setDoc(
-        ref,
+        doc(db, 'users', user.uid),
         {
           firstName: first,
           lastName: last,
@@ -131,16 +148,21 @@ export default function UserProfilePage({ email }) {
     }
   };
 
-  // Avatar upload (client-only)
+  // ---- Avatar seçimi (preview + dosyayı state'e)
   const handleImageUpload = (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    setSelectedFile(file);
+
+    // Hızlı güvenli önizleme
     const reader = new FileReader();
-    reader.onload = (e) => setUser((u) => ({ ...u, profileImage: e.target?.result || null }));
+    reader.onload = (e) =>
+      setUser((u) => ({ ...u, profileImage: e.target?.result || null }));
     reader.readAsDataURL(file);
   };
 
-  // Password change
+  // ---- Password change
   const handlePasswordChange = async () => {
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       alert('New passwords do not match!');
@@ -170,7 +192,11 @@ export default function UserProfilePage({ email }) {
       await updatePassword(currentUser, passwordData.newPassword);
 
       alert('Password changed successfully!');
-      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      setPasswordData({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      });
       setShowPasswordForm(false);
     } catch (error) {
       console.error(error);
@@ -180,18 +206,67 @@ export default function UserProfilePage({ email }) {
           message = 'Current password is incorrect.';
           break;
         case 'auth/weak-password':
-          message = 'New password is too weak. Use at least 6 characters.';
+          message = 'New password is too weak.';
           break;
         case 'auth/too-many-requests':
           message = 'Too many attempts. Please try again later.';
           break;
         case 'auth/requires-recent-login':
-          message = 'Please log in again and retry changing your password.';
+          message = 'Please log in again and retry.';
           break;
         default:
           message = error.message || message;
       }
       alert(message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // ---- Save all (name + photo upload + Firestore + Auth)
+  const saveAllChanges = async () => {
+    const auth = getAuth();
+    const fbUser = auth.currentUser;
+    if (!fbUser || !user.uid) {
+      alert('Please sign in again.');
+      return;
+    }
+
+    try {
+      setBusy(true);
+
+      // 1) İsim
+      if (editing && (first !== user.firstName || last !== user.lastName)) {
+        await saveName();
+      }
+
+      // 2) Foto (varsa)
+      if (selectedFile) {
+      const storageRef = ref(storage, `users/${user.uid}/avatar.jpg`);
+
+        await uploadBytes(storageRef, selectedFile);
+        const downloadURL = await getDownloadURL(storageRef);
+
+        // Firestore’a kalıcı URL
+        await setDoc(
+          doc(db, 'users', user.uid),
+          { photoURL: downloadURL, updatedAt: serverTimestamp() },
+          { merge: true }
+        );
+
+        // Auth profilini güncelle + reload
+        await updateProfile(fbUser, { photoURL: downloadURL });
+        await fbUser.reload();
+
+        // Local state
+        setUser((u) => ({ ...u, profileImage: downloadURL }));
+        setSelectedFile(null);
+      }
+
+      alert('All changes saved.');
+    } catch (e) {
+      console.error(e);
+      alert('Failed to save changes.');
     } finally {
       setBusy(false);
     }
@@ -217,15 +292,13 @@ export default function UserProfilePage({ email }) {
       padding: '32px 24px',
       color: '#fff',
     },
-    headerTitle: { fontSize: '32px', fontWeight: 'bold', margin: 0 },
-    headerSubtitle: { color: 'rgba(255,255,255,0.8)', marginTop: '8px', margin: 0 },
-    content: { padding: '24px' },
-    profileSection: { display: 'flex', flexDirection: 'column', gap: '24px', marginBottom: '32px' },
+    headerSubtitle: { color: 'rgba(255,255,255,0.8)', marginTop: 8, margin: 0 },
+    content: { padding: 24 },
     profileImageContainer: { display: 'flex', flexDirection: 'column', alignItems: 'center' },
-    avatarWrapper: { position: 'relative', marginBottom: '8px' },
+    avatarWrapper: { position: 'relative', marginBottom: 8 },
     avatar: {
-      width: '128px',
-      height: '128px',
+      width: 128,
+      height: 128,
       borderRadius: '50%',
       backgroundColor: '#f3f4f6',
       overflow: 'hidden',
@@ -248,7 +321,7 @@ export default function UserProfilePage({ email }) {
       right: 0,
       backgroundColor: '#dc2626',
       color: '#fff',
-      padding: '8px',
+      padding: 8,
       borderRadius: '50%',
       cursor: 'pointer',
       border: 'none',
@@ -256,34 +329,34 @@ export default function UserProfilePage({ email }) {
       transition: 'background-color 0.2s',
     },
     hiddenInput: { display: 'none' },
-    uploadText: { fontSize: '14px', color: '#6b7280', textAlign: 'center' },
   };
 
   return (
     <div style={styles.container}>
       <div style={styles.wrapper}>
         <div style={styles.card}>
+
           <h1 style={{
             marginBottom: 20,
-            color: "#000",
-            fontSize: "2rem",
-            fontWeight: "bold",
-            display: "flex",
-            alignItems: "center",
+            color: '#000',
+            fontSize: '2rem',
+            fontWeight: 'bold',
+            display: 'flex',
+            alignItems: 'center',
             gap: 10,
           }}>
             <Link
               to="/dashboard"
               style={{
-                textDecoration: "none",
-                cursor: "pointer",
-                userSelect: "none",
-                padding: "4px 8px",
+                textDecoration: 'none',
+                cursor: 'pointer',
+                userSelect: 'none',
+                padding: '4px 8px',
                 borderRadius: 8,
-                border: "1px solid #e5e7eb",
-                background: "#fff",
-                boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-                color: "inherit",
+                border: '1px solid #e5e7eb',
+                background: '#fff',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                color: 'inherit',
               }}
               title="Back to Dashboard"
               aria-label="Back to Dashboard"
@@ -291,21 +364,23 @@ export default function UserProfilePage({ email }) {
             >
               &larr;
             </Link>
-            Profile <span style={{ color: "#dc2626" }}>Settings</span>
+            Profile <span style={{ color: '#dc2626' }}>Settings</span>
           </h1>
+
           <div style={styles.header}>
             <p style={styles.headerSubtitle}>Manage your account information and preferences</p>
           </div>
+
           <div style={styles.content}>
-            {/* Top profile section */}
+            {/* Top profile row */}
             <div style={s.topRow}>
               <div style={styles.profileImageContainer}>
                 <div style={styles.avatarWrapper}>
-                  <div stylnpe={styles.avatar}>
+                  <div style={styles.avatar}>
                     {user.profileImage ? (
                       <img src={user.profileImage} alt="Profile" style={styles.avatarImage} />
                     ) : (
-                      <div style={styles.avatarPlaceholder}>
+                      <div style={s.avatarPlaceholderFallback}>
                         <User size={64} />
                       </div>
                     )}
@@ -331,7 +406,7 @@ export default function UserProfilePage({ email }) {
               </div>
             </div>
 
-            {/* Editable Name */}
+            {/* Editable name */}
             <div style={s.section}>
               <div style={s.label}>Full Name</div>
               {!editing ? (
@@ -384,7 +459,7 @@ export default function UserProfilePage({ email }) {
             </div>
 
             {/* Password change */}
-            <div style={{ ...s.section, ...s.card }}>
+            <div style={{ ...s.section, ...s.innerCard }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={s.label}>Change Password</div>
                 <button
@@ -492,15 +567,14 @@ export default function UserProfilePage({ email }) {
               )}
             </div>
 
+            {/* Save all */}
             <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: 24, borderTop: '1px solid #e5e7eb', marginTop: 16 }}>
               <button
                 style={s.primaryBtn}
-                onClick={() => {
-                  if (editing) saveName();
-                  else alert('Everything is up to date.');
-                }}
+                onClick={saveAllChanges}
+                disabled={busy}
               >
-                Save All Changes
+                {busy ? 'Saving...' : 'Save All Changes'}
               </button>
             </div>
           </div>
@@ -510,7 +584,7 @@ export default function UserProfilePage({ email }) {
   );
 }
 
-/* ---------- Styles (compact, old-school card vibe + modern touches) ---------- */
+/* ---------- Styles ---------- */
 const s = {
   topRow: {
     display: 'flex',
@@ -576,6 +650,22 @@ const s = {
     borderRadius: 10,
     cursor: 'pointer',
     fontWeight: 600,
+  },
+  innerCard: {
+    background: '#fff',
+    border: '1px solid #e5e7eb',
+    borderRadius: 10,
+    padding: 16,
+    boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+  },
+  avatarPlaceholderFallback: {
+    width: '100%',
+    height: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: 'linear-gradient(90deg, #000 0%, #dc2626 100%)',
+    color: '#fff',
   },
 };
 
