@@ -242,12 +242,12 @@ export default function UserProfilePage({ email }) {
 
       // 2) Foto (varsa)
       if (selectedFile) {
-      const storageRef = ref(storage, `users/${user.uid}/avatar.jpg`);
+        const storageRef = ref(storage, `users/${user.uid}/avatar.jpg`);
 
         await uploadBytes(storageRef, selectedFile);
         const downloadURL = await getDownloadURL(storageRef);
 
-        // Firestore’a kalıcı URL
+        // Firestore'a kalıcı URL
         await setDoc(
           doc(db, 'users', user.uid),
           { photoURL: downloadURL, updatedAt: serverTimestamp() },
@@ -261,9 +261,7 @@ export default function UserProfilePage({ email }) {
         // Local state
         setUser((u) => ({ ...u, profileImage: downloadURL }));
         setSelectedFile(null);
-      }
-
-      alert('All changes saved.');
+      }      alert('All changes saved.');
     } catch (e) {
       console.error(e);
       alert('Failed to save changes.');
