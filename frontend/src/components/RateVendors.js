@@ -96,9 +96,9 @@ const RateVendors = () => {
   return (
     <div
       style={{
-        padding: 30,
+        padding: 10,
         fontFamily: "Segoe UI, sans-serif",
-        minHeight: "100vh",
+        minHeight: "calc(100vh - 75px)",
         display: "flex",
         flexDirection: "column",
         backgroundColor: "#f9f9f9",

@@ -173,9 +173,9 @@ export default function EditVendor({ isAdmin }) {
   return (
     <div
       style={{
-        padding: 30,
+        padding: 15,
         fontFamily: "Segoe UI, sans-serif",
-        minHeight: "100vh",
+        minHeight: "calc(100vh - 120px)",
         backgroundColor: "#f9f9f9",
         display: "flex",
         flexDirection: "column"

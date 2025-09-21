@@ -272,9 +272,9 @@ export default function UserProfilePage({ email }) {
 
   const styles = {
     container: {
-      minHeight: '100vh',
+      minHeight: 'calc(100vh - 120px)',
       backgroundColor: '#fff',
-      padding: '32px 0',
+      padding: '10px 0',
       fontFamily:
         '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
     },
@@ -396,11 +396,6 @@ export default function UserProfilePage({ email }) {
             </Link>
             Profile <span style={{ color: '#dc2626' }}>Settings</span>
           </h1>
-
-          <div style={styles.header}>
-            <p style={styles.headerSubtitle}>Manage your account information and preferences</p>
-          </div>
-
           <div style={styles.content}>
             {/* Top profile row */}
             <div style={s.topRow}>

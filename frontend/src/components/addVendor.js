@@ -113,7 +113,7 @@ export default function AddVendor() {
   };
 
   return (
-    <div style={{ padding: 30, fontFamily: "Segoe UI, sans-serif", minHeight: "100vh", backgroundColor: "#f9f9f9", display: "flex", flexDirection: "column" }}>
+    <div style={{ padding: 15, fontFamily: "Segoe UI, sans-serif", minHeight: "calc(100vh - 120px)", backgroundColor: "#f9f9f9", display: "flex", flexDirection: "column" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 30 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <img src={logo} alt="Logo" style={{ height: 40 }} />

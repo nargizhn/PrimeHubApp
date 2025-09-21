@@ -108,11 +108,12 @@ function LoginSignup() {
 
   return (
     <div style={{
-      minHeight: '100vh',
+      minHeight: 'calc(100vh - 120px)',
       background: 'linear-gradient(135deg, #000 0%, #1a1a1a 100%)',
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'center'
+      justifyContent: 'center',
+      padding: '10px 0'
     }}>
       <div style={{
         maxWidth: 420,

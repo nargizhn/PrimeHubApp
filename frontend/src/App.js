@@ -8,6 +8,7 @@ import RateVendors from "./components/RateVendors";
 import LoginSignup from "./components/LoginSignup";
 import EditVendor from "./components/EditVendor";
 import AddVendor from "./components/addVendor";
+import Footer from "./components/Footer";
 import { useAuth } from "./auth-context";
 
 function App() {
@@ -30,16 +31,16 @@ function App() {
                     <Route path="/" element={<Navigate to="/login" replace />} />
 
                     {/* Public */}
-                    <Route path="/login"  element={<Public><LoginSignup /></Public>} />
-                    <Route path="/signup" element={<Public><LoginSignup isLogin={false} /></Public>} />
+                    <Route path="/login"  element={<Public><><LoginSignup /></></Public>} />
+                    <Route path="/signup" element={<Public><><LoginSignup isLogin={false} /></></Public>} />
 
                     {/* Protected */}
                     <Route path="/dashboard"    element={<Protected><Dashboard /></Protected>} />
-                    <Route path="/profile"      element={<Protected><Profile /></Protected>} />
-                    <Route path="/vendor-list"  element={<Protected><VendorList /></Protected>} />
-                    <Route path="/rate-vendors" element={<Protected><RateVendors /></Protected>} />
-                    <Route path="/edit-vendor/:vendorId" element={<Protected><EditVendor isAdmin={isAdmin} /></Protected>} />
-                    <Route path="/add-vendor"   element={<Protected><AddVendor /></Protected>} />
+                    <Route path="/profile"      element={<Protected><><Profile /><Footer /></></Protected>} />
+                    <Route path="/vendor-list"  element={<Protected><><VendorList /><Footer /></></Protected>} />
+                    <Route path="/rate-vendors" element={<Protected><><RateVendors /><Footer /></></Protected>} />
+                    <Route path="/edit-vendor/:vendorId" element={<Protected><><EditVendor isAdmin={isAdmin} /><Footer /></></Protected>} />
+                    <Route path="/add-vendor"   element={<Protected><><AddVendor /><Footer /></></Protected>} />
 
                     {/* bilinmeyen rota */}
                     <Route path="*" element={<Navigate to="/login" replace />} />

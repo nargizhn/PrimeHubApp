@@ -111,9 +111,9 @@ export default function VendorList({ isAdmin }) {
   // Get responsive styles
   const getResponsiveStyles = () => ({
     container: {
-      padding: isMobile ? '20px' : '40px',
+      padding: isMobile ? '10px' : '20px',
       backgroundColor: '#f5f5f5',
-      minHeight: '100vh',
+      minHeight: 'calc(100vh - 120px)',
       fontFamily: 'Segoe UI, sans-serif',
     },
     header: {
