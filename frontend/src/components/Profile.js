@@ -341,26 +341,58 @@ export default function UserProfilePage({ email }) {
             fontWeight: 'bold',
             display: 'flex',
             alignItems: 'center',
-            gap: 10,
+            gap: 16,
           }}>
             <Link
               to="/dashboard"
               style={{
+                marginLeft: '20px',
                 textDecoration: 'none',
                 cursor: 'pointer',
                 userSelect: 'none',
-                padding: '4px 8px',
-                borderRadius: 8,
-                border: '1px solid #e5e7eb',
-                background: '#fff',
-                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                color: 'inherit',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: '2px solid transparent',
+                background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.03)',
+                color: '#374151',
+                fontSize: '16px',
+                fontWeight: '600',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                position: 'relative',
+                overflow: 'hidden',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minWidth: '36px',
+                height: '36px',
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = 'translateX(-1px) scale(1.02)';
+                e.target.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1), 0 2px 6px rgba(0,0,0,0.06)';
+                e.target.style.background = 'linear-gradient(135deg, #dc2626 0%, #991b1b 50%, #7f1d1d 100%)';
+                e.target.style.color = '#ffffff';
+                e.target.style.borderColor = 'rgba(220, 38, 38, 0.3)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateX(0) scale(1)';
+                e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.03)';
+                e.target.style.background = 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)';
+                e.target.style.color = '#374151';
+                e.target.style.borderColor = 'transparent';
               }}
               title="Back to Dashboard"
               aria-label="Back to Dashboard"
               role="button"
             >
-              &larr;
+              <span style={{
+                fontSize: '18px',
+                fontWeight: '700',
+                textShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                transition: 'all 0.3s ease',
+              }}>
+                ←
+              </span>
             </Link>
             Profile <span style={{ color: '#dc2626' }}>Settings</span>
           </h1>
