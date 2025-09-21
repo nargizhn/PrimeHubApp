@@ -17,7 +17,7 @@ const Dashboard = ({ setUser }) => {
   const navigate = useNavigate();
   const { logout } = useAuth();
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 1024);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [metrics, setMetrics] = useState({
     total: 0,
@@ -28,7 +28,7 @@ const Dashboard = ({ setUser }) => {
   // Handle window resize for responsive design
   useEffect(() => {
     const handleResize = () => {
-      const mobile = window.innerWidth <= 768;
+      const mobile = window.innerWidth <= 1024;
       setIsMobile(mobile);
       if (!mobile) {
         setShowMobileMenu(false); // Close mobile menu on desktop
