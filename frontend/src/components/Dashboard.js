@@ -6,6 +6,7 @@ import { useAuth } from "../auth-context";
 import { API_ENDPOINTS } from "../config/api";
 import logo from "../assets/prime-logo.png";
 import { FaUser, FaList, FaStar } from "react-icons/fa";
+import Footer from "./Footer";
 
 import photo1 from "../assets/event1.jpg";
 import photo2 from "../assets/event2.jpg";
@@ -135,9 +136,14 @@ const Dashboard = ({ setUser }) => {
     main: {
       ...styles.main,
       ...(isMobile ? {
-        marginTop: '60px',
-        padding: '20px',
+        marginTop: '40px',
         marginLeft: '0',
+      } : {})
+    },
+    mainContent: {
+      ...styles.mainContent,
+      ...(isMobile ? {
+        padding: '15px',
       } : {})
     },
     carousel: {
@@ -149,7 +155,7 @@ const Dashboard = ({ setUser }) => {
     carouselBox: {
       ...styles.carouselBox,
       ...(isMobile ? {
-        height: '200px',
+        height: '150px',
       } : {})
     },
     grid: {
@@ -196,8 +202,8 @@ const Dashboard = ({ setUser }) => {
         <div style={{
           ...styles.logoContainer,
           ...(isMobile ? {
-            marginTop: '20px',
-            marginBottom: '30px'
+            marginTop: '15px',
+            marginBottom: '20px'
           } : {})
         }}>
           <img src={logo} alt="Logo" style={styles.logo} />
@@ -220,10 +226,11 @@ const Dashboard = ({ setUser }) => {
       </aside>
 
       <main style={responsiveStyles.main}>
-        <h1 style={responsiveStyles.heading}>Welcome Back 👋</h1>
-        <p style={styles.subheading}>Here's what's happening with vendors today.</p>
+        <div style={responsiveStyles.mainContent}>
+          <h1 style={responsiveStyles.heading}>Welcome Back 👋</h1>
+          <p style={styles.subheading}>Here's what's happening with vendors today.</p>
 
-        <div style={styles.contentContainer}>
+          <div style={styles.contentContainer}>
           {/* Carousel */}
           <div style={responsiveStyles.carousel}>
             <h2 style={{ marginBottom: 5 }}>Recent Events</h2>
@@ -260,6 +267,10 @@ const Dashboard = ({ setUser }) => {
             </div>
           </div>
         </div>
+        </div>
+        
+        {/* Footer inside main content */}
+        <Footer />
       </main>
     </div>
   );
@@ -269,7 +280,7 @@ const Dashboard = ({ setUser }) => {
 const styles = {
   container: {
     display: "flex",
-    height: "100vh",
+    minHeight: "100vh",
     fontFamily: "Segoe UI, sans-serif",
     backgroundColor: "#f5f5f5",
     color: "#1c1c1c",
@@ -353,48 +364,53 @@ const styles = {
   },
   main: {
     flex: 1,
-    height: "100vh",
+    display: "flex",
+    flexDirection: "column",
+    minHeight: "100vh",
     overflowY: "auto",
-    padding: "40px 60px",
-    boxSizing: "border-box",
     backgroundColor: "#fff",
   },
+  mainContent: {
+    flex: 1,
+    padding: "20px 30px",
+    boxSizing: "border-box",
+  },
   heading: {
-    fontSize: "28px",
-    marginBottom: "10px",
+    fontSize: "24px",
+    marginBottom: "8px",
   },
   subheading: {
-    fontSize: "16px",
+    fontSize: "14px",
     color: "#666",
-    marginBottom: "40px",
+    marginBottom: "20px",
   },
   contentContainer: {},
   grid: {
     display: "flex",
-    gap: "30px",
-    marginBottom: "50px",
+    gap: "20px",
+    marginBottom: "25px",
   },
   card: {
     flex: 1,
     backgroundColor: "#d90000",
     color: "#fff",
-    padding: "30px",
+    padding: "20px",
     borderRadius: "12px",
     boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
     textAlign: "center",
-    fontSize: "18px",
+    fontSize: "16px",
     fontWeight: "600",
   },
   carousel: {
     backgroundColor: "#fff",
-    padding: "30px",
+    padding: "20px",
     borderRadius: "12px",
     boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-    marginBottom: "40px",
+    marginBottom: "20px",
   },
   carouselBox: {
-    height: "350px",
-    maxWidth: "700px",
+    height: "250px",
+    maxWidth: "600px",
     margin: "0 auto",
     borderRadius: "8px",
     overflow: "hidden",
