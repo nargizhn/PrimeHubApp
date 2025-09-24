@@ -8,6 +8,7 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   updateProfile,
+  sendPasswordResetEmail,
 } from "firebase/auth";
 import { db } from "../firebase";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
@@ -21,6 +22,8 @@ function LoginSignup() {
 
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
+  const [resetMessage, setResetMessage] = useState("");
+  const [resetMessageType, setResetMessageType] = useState(""); // 'success' | 'error'
   const navigate = useNavigate();
   const auth = getAuth();
   const { user } = useAuth();
@@ -91,9 +94,7 @@ function LoginSignup() {
         localStorage.setItem("token", token);
 
         // İsim/soyisim: displayName varsa parçala
-        const [dispFirst = "", dispLast = ""] = (user.displayName || "").split(" ");
-
-
+        // displayName parts are optional; no need to store here
 
         navigate("/dashboard", { replace: true });
       }
@@ -103,6 +104,26 @@ function LoginSignup() {
     } finally {
       setEmail('');
       setPassword('');
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    const mail = (email || "").trim();
+    setResetMessage("");
+    setResetMessageType("");
+    if (!mail) {
+      setResetMessage("Please enter your email above first.");
+      setResetMessageType("error");
+      return;
+    }
+    try {
+      await sendPasswordResetEmail(auth, mail);
+      setResetMessage("Password reset email sent. Please check your inbox (and spam).");
+      setResetMessageType("success");
+    } catch (e) {
+      console.error("Reset password error:", e);
+      setResetMessage(e?.message || "Failed to send reset email.");
+      setResetMessageType("error");
     }
   };
 
@@ -231,6 +252,25 @@ function LoginSignup() {
                 outline: 'none',
               }}
             />
+            {!isSignUp && (
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                style={{
+                  marginTop: 8,
+                  background: 'none',
+                  color: '#ff0000',
+                  border: 'none',
+                  cursor: 'pointer',
+                  textDecoration: 'underline',
+                  fontWeight: 600,
+                  fontSize: 14,
+                  padding: 0,
+                }}
+              >
+                Forgot password?
+              </button>
+            )}
           </div>
           <button
             type="submit"
@@ -252,6 +292,19 @@ function LoginSignup() {
             {isSignUp ? 'Sign Up' : 'Login'}
           </button>
         </form>
+
+        {!isSignUp && resetMessage && (
+          <div
+            role="status"
+            style={{
+              marginTop: 12,
+              fontSize: 14,
+              color: resetMessageType === 'success' ? '#86efac' : '#fca5a5',
+            }}
+          >
+            {resetMessage}
+          </div>
+        )}
 
         <div style={{ marginTop: 22, textAlign: 'center' }}>
           <span style={{ color: '#fff' }}>
