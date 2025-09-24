@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-// import { auth } from "../firebase"; // kullanılmıyor
 import { getAuth } from "firebase/auth";
 import { useAuth } from "../auth-context";
 import { API_ENDPOINTS } from "../config/api";
@@ -8,36 +7,81 @@ import logo from "../assets/prime-logo.png";
 import { FaUser, FaList, FaStar } from "react-icons/fa";
 import Footer from "./Footer";
 
+// Eski fallback görseller
 import photo1 from "../assets/event1.jpg";
 import photo2 from "../assets/event2.jpg";
 import photo3 from "../assets/event3.jpg";
 
-const photos = [photo1, photo2, photo3];
+// --- assets/carousel içindeki tüm görselleri otomatik yükle ---
+function loadCarouselImages() {
+    try {
+        const ctx = require.context("../assets/carousel", false, /\.(png|jpe?g|webp|gif)$/i);
+        return ctx.keys().map((k) => ctx(k));
+    } catch {
+        return [];
+    }
+}
+
+const fallbackPhotos = [photo1, photo2, photo3];
 
 const Dashboard = ({ setUser }) => {
     const navigate = useNavigate();
     const { logout } = useAuth();
+
+    const dynamicPhotos = useMemo(() => loadCarouselImages(), []);
+    const photos = dynamicPhotos.length ? dynamicPhotos : fallbackPhotos;
+
     const [currentIndex, setCurrentIndex] = useState(0);
+    const [ratios, setRatios] = useState([]); // her görselin en/boy oranı (width/height)
+
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 1024);
     const [showMobileMenu, setShowMobileMenu] = useState(false);
+
     const [metrics, setMetrics] = useState({
         total: 0,
         pendingRatings: 0,
-        newRequests: 0, // heuristic: agreementNumber boş olanlar
+        newRequests: 0,
     });
 
-    // Handle window resize for responsive design
+    // Görsellerin doğal en/boy oranını preload ederek al
+    useEffect(() => {
+        let mounted = true;
+        const tmp = [];
+        let loaded = 0;
+
+        photos.forEach((src, i) => {
+            const img = new Image();
+            img.onload = () => {
+                if (!mounted) return;
+                const r = img.naturalWidth && img.naturalHeight
+                    ? img.naturalWidth / img.naturalHeight
+                    : 16 / 9;
+                tmp[i] = r;
+                loaded += 1;
+                if (loaded === photos.length) setRatios(tmp);
+            };
+            img.onerror = () => {
+                tmp[i] = 16 / 9;
+                loaded += 1;
+                if (loaded === photos.length) setRatios(tmp);
+            };
+            img.src = src;
+        });
+
+        return () => {
+            mounted = false;
+        };
+    }, [photos]);
+
+    // Resize
     useEffect(() => {
         const handleResize = () => {
             const mobile = window.innerWidth <= 1024;
             setIsMobile(mobile);
-            if (!mobile) {
-                setShowMobileMenu(false); // Close mobile menu on desktop
-            }
+            if (!mobile) setShowMobileMenu(false);
         };
-
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
     }, []);
 
     const handleLogout = async () => {
@@ -48,15 +92,16 @@ const Dashboard = ({ setUser }) => {
         }
     };
 
-    // Carousel
+    // Carousel autoplay
     useEffect(() => {
-        const interval = setInterval(() => {
-            setCurrentIndex((prev) => (prev + 1) % photos.length);
+        if (photos.length <= 1) return;
+        const t = setInterval(() => {
+            setCurrentIndex((p) => (p + 1) % photos.length);
         }, 5000);
-        return () => clearInterval(interval);
-    }, []);
+        return () => clearInterval(t);
+    }, [photos.length]);
 
-    // Metrikleri çek
+    // Metrics
     const fetchMetrics = async () => {
         try {
             const auth = getAuth();
@@ -68,17 +113,10 @@ const Dashboard = ({ setUser }) => {
             }
 
             const res = await fetch(API_ENDPOINTS.VENDORS.BASE, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "application/json",
-                },
+                headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
             });
-
             if (!res.ok) {
-                if (res.status === 401) {
-                    console.warn("Unauthorized while fetching metrics.");
-                    return;
-                }
+                if (res.status === 401) return;
                 const t = await res.text().catch(() => "");
                 console.error("Failed to fetch vendors:", t || `${res.status} ${res.statusText}`);
                 return;
@@ -87,34 +125,23 @@ const Dashboard = ({ setUser }) => {
             const list = await res.json();
             const vendors = Array.isArray(list) ? list : [];
 
-            // --- Normalizasyon (gelen veri türü/boşluk sorunlarına dayanıklı olsun) ---
             const toInt = (x) => {
                 const n = Number(x);
                 return Number.isFinite(n) ? n : 0;
             };
-            const toNumOrNull = (x) => (x === "" || x == null ? null : Number(x));
-
             const normalized = vendors.map((v) => ({
                 ...v,
                 ratingCount: toInt(v?.ratingCount),
-                rating: toNumOrNull(v?.rating),
                 agreementNumber: (v?.agreementNumber ?? "").toString(),
             }));
 
-            const total = normalized.length;
-
-            // ✅ Pending = ratingCount === 0 (henüz hiç oy yok)
-            const pendingRatings = normalized.filter((v) => v.ratingCount === 0).length;
-
-            // New Requests (heuristic) = agreementNumber boş olanlar
-            const newRequests = normalized.filter(
-                (v) => !v.agreementNumber || v.agreementNumber.trim() === ""
-            ).length;
-
-            setMetrics({ total, pendingRatings, newRequests });
+            setMetrics({
+                total: normalized.length,
+                pendingRatings: normalized.filter((v) => v.ratingCount === 0).length,
+                newRequests: normalized.filter((v) => !v.agreementNumber.trim()).length,
+            });
         } catch (e) {
             console.error(e);
-            // Tasarıma dokunmamak adına alert koymuyoruz
         }
     };
 
@@ -123,72 +150,62 @@ const Dashboard = ({ setUser }) => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // Get responsive styles
+    const prevSlide = () => setCurrentIndex((i) => (i - 1 + photos.length) % photos.length);
+    const nextSlide = () => setCurrentIndex((i) => (i + 1) % photos.length);
+
+    // Responsive styles
     const getResponsiveStyles = () => ({
         container: {
             ...styles.container,
-            ...(isMobile ? {
-                flexDirection: 'column',
-            } : {})
+            ...(isMobile ? { flexDirection: "column" } : {}),
         },
         sidebar: {
             ...styles.sidebar,
-            ...(isMobile ? {
-                position: 'fixed',
-                top: 0,
-                left: showMobileMenu ? 0 : '-100%',
-                height: '100vh',
-                width: '280px',
-                zIndex: 1001,
-                transition: 'left 0.3s ease-in-out',
-                paddingTop: '20px',
-            } : {})
+            ...(isMobile
+                ? {
+                    position: "fixed",
+                    top: 0,
+                    left: showMobileMenu ? 0 : "-100%",
+                    height: "100vh",
+                    width: "280px",
+                    zIndex: 1001,
+                    transition: "left 0.3s ease-in-out",
+                    paddingTop: "20px",
+                }
+                : {}),
         },
         main: {
             ...styles.main,
-            ...(isMobile ? {
-                marginTop: '40px',
-                marginLeft: '0',
-            } : {})
+            ...(isMobile ? { marginTop: "40px", marginLeft: "0" } : {}),
         },
         mainContent: {
             ...styles.mainContent,
-            ...(isMobile ? {
-                padding: '15px',
-            } : {})
+            ...(isMobile ? { padding: "15px" } : {}),
         },
         carousel: {
             ...styles.carousel,
-            ...(isMobile ? {
-                padding: '20px',
-            } : {})
+            ...(isMobile ? { padding: "16px" } : {}),
         },
         carouselBox: {
             ...styles.carouselBox,
-            ...(isMobile ? {
-                height: '150px',
-            } : {})
+            // kutu yüksekliği aktif görselin oranına göre dinamik
+            aspectRatio: ratios[currentIndex] || 16 / 9,
+            maxWidth: isMobile ? "100%" : 360,
         },
         grid: {
             ...styles.grid,
-            ...(isMobile ? {
-                flexDirection: 'column',
-                gap: '15px',
-            } : {})
+            ...(isMobile ? { flexDirection: "column", gap: "15px" } : {}),
         },
         heading: {
             ...styles.heading,
-            ...(isMobile ? {
-                fontSize: '24px',
-            } : {})
-        }
+            ...(isMobile ? { fontSize: "24px" } : {}),
+        },
     });
-
     const responsiveStyles = getResponsiveStyles();
 
     return (
         <div style={responsiveStyles.container}>
-            {/* Mobile Header - only shows on mobile */}
+            {/* Mobile Header */}
             {isMobile && (
                 <div style={styles.mobileHeader}>
                     <button
@@ -199,24 +216,23 @@ const Dashboard = ({ setUser }) => {
                         ☰
                     </button>
                     <img src={logo} alt="Logo" style={styles.mobileHeaderLogo} />
-                    <div style={{ width: 40 }} /> {/* Spacer for centering */}
+                    <div style={{ width: 40 }} />
                 </div>
             )}
 
-            {/* Mobile Menu Overlay */}
+            {/* Overlay */}
             {isMobile && showMobileMenu && (
                 <div style={styles.mobileOverlay} onClick={() => setShowMobileMenu(false)} />
             )}
 
             {/* Sidebar */}
             <aside style={responsiveStyles.sidebar}>
-                <div style={{
-                    ...styles.logoContainer,
-                    ...(isMobile ? {
-                        marginTop: '15px',
-                        marginBottom: '20px'
-                    } : {})
-                }}>
+                <div
+                    style={{
+                        ...styles.logoContainer,
+                        ...(isMobile ? { marginTop: "15px", marginBottom: "20px" } : {}),
+                    }}
+                >
                     <img src={logo} alt="Logo" style={styles.logo} />
                     <h2 style={styles.brand}>Prime Vendor Dashboard</h2>
                 </div>
@@ -244,26 +260,58 @@ const Dashboard = ({ setUser }) => {
                     <div style={styles.contentContainer}>
                         {/* Carousel */}
                         <div style={responsiveStyles.carousel}>
-                            <h2 style={{ marginBottom: 5 }}>Recent Events</h2>
+                            <h2 style={{ marginBottom: 8 }}>Recent Events</h2>
+
                             <div style={responsiveStyles.carouselBox}>
-                                {photos.map((photo, index) => (
-                                    <img
-                                        key={index}
-                                        src={photo}
-                                        alt={`Event ${index + 1}`}
-                                        style={{
-                                            ...styles.carouselImage,
-                                            opacity: index === currentIndex ? 1 : 0,
-                                            position: "absolute",
-                                            transition: "opacity 1s ease-in-out",
-                                        }}
-                                    />
-                                ))}
+                                {/* Yalnızca görünür resmi render et (contain + oran eşleşti, gri yok) */}
+                                <img
+                                    src={photos[currentIndex]}
+                                    alt={`Event ${currentIndex + 1}`}
+                                    style={styles.carouselImage}
+                                    draggable={false}
+                                />
+
+                                {photos.length > 1 && (
+                                    <>
+                                        <button
+                                            type="button"
+                                            onClick={prevSlide}
+                                            aria-label="Previous"
+                                            style={{ ...styles.arrowBtn, left: 12 }}
+                                        >
+                                            ‹
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={nextSlide}
+                                            aria-label="Next"
+                                            style={{ ...styles.arrowBtn, right: 12 }}
+                                        >
+                                            ›
+                                        </button>
+                                    </>
+                                )}
+
+                                {photos.length > 1 && (
+                                    <div style={styles.dots}>
+                                        {photos.map((_, i) => (
+                                            <button
+                                                key={i}
+                                                onClick={() => setCurrentIndex(i)}
+                                                aria-label={`Go to slide ${i + 1}`}
+                                                style={{
+                                                    ...styles.dot,
+                                                    ...(i === currentIndex ? styles.dotActive : {}),
+                                                }}
+                                            />
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
 
                         {/* Cards */}
-                        <div style={styles.grid}>
+                        <div style={responsiveStyles.grid}>
                             <div style={styles.card}>
                                 <h3>Total Vendors</h3>
                                 <p>{metrics.total}</p>
@@ -280,14 +328,13 @@ const Dashboard = ({ setUser }) => {
                     </div>
                 </div>
 
-                {/* Footer inside main content */}
                 <Footer />
             </main>
         </div>
     );
 };
 
-// Original desktop styles preserved exactly as they were
+// Styles (tema: kırmızı/siyah/beyaz)
 const styles = {
     container: {
         display: "flex",
@@ -297,43 +344,40 @@ const styles = {
         color: "#1c1c1c",
     },
 
-    // Mobile-only styles
+    // Mobile
     mobileHeader: {
-        position: 'fixed',
+        position: "fixed",
         top: 0,
         left: 0,
         right: 0,
-        height: '60px',
-        backgroundColor: '#000',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '0 20px',
+        height: "60px",
+        backgroundColor: "#000",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "0 20px",
         zIndex: 1000,
     },
     mobileMenuButton: {
-        background: 'none',
-        border: 'none',
-        color: '#fff',
-        fontSize: '24px',
-        cursor: 'pointer',
-        padding: '10px',
+        background: "none",
+        border: "none",
+        color: "#fff",
+        fontSize: "24px",
+        cursor: "pointer",
+        padding: "10px",
     },
-    mobileHeaderLogo: {
-        height: '40px',
-        width: 'auto',
-    },
+    mobileHeaderLogo: { height: "40px", width: "auto" },
     mobileOverlay: {
-        position: 'fixed',
+        position: "fixed",
         top: 0,
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
         zIndex: 1000,
     },
 
-    // Original desktop styles - unchanged
+    // Sidebar
     sidebar: {
         width: "250px",
         backgroundColor: "#000",
@@ -342,26 +386,10 @@ const styles = {
         flexDirection: "column",
         padding: "30px 20px",
     },
-    logoContainer: {
-        display: "flex",
-        alignItems: "center",
-        height: "150px",
-        width: "100px",
-        gap: 10,
-    },
-    logo: {
-        height: "100px",
-        width: "100px",
-    },
-    brand: {
-        fontSize: "20px",
-        fontWeight: "bold",
-    },
-    nav: {
-        display: "flex",
-        flexDirection: "column",
-        gap: "20px",
-    },
+    logoContainer: { display: "flex", alignItems: "center", height: "150px", width: "100px", gap: 10 },
+    logo: { height: "100px", width: "100px" },
+    brand: { fontSize: "20px", fontWeight: "bold" },
+    nav: { display: "flex", flexDirection: "column", gap: "20px" },
     navItem: {
         display: "flex",
         alignItems: "center",
@@ -370,9 +398,9 @@ const styles = {
         color: "#fff",
         transition: "0.2s ease",
     },
-    icon: {
-        marginRight: "10px",
-    },
+    icon: { marginRight: "10px" },
+
+    // Main
     main: {
         flex: 1,
         display: "flex",
@@ -381,26 +409,13 @@ const styles = {
         overflowY: "auto",
         backgroundColor: "#fff",
     },
-    mainContent: {
-        flex: 1,
-        padding: "20px 30px",
-        boxSizing: "border-box",
-    },
-    heading: {
-        fontSize: "24px",
-        marginBottom: "8px",
-    },
-    subheading: {
-        fontSize: "14px",
-        color: "#666",
-        marginBottom: "20px",
-    },
+    mainContent: { flex: 1, padding: "20px 30px", boxSizing: "border-box" },
+    heading: { fontSize: "24px", marginBottom: "8px" },
+    subheading: { fontSize: "14px", color: "#666", marginBottom: "20px" },
     contentContainer: {},
-    grid: {
-        display: "flex",
-        gap: "20px",
-        marginBottom: "25px",
-    },
+
+    // Cards
+    grid: { display: "flex", gap: "20px", marginBottom: "25px" },
     card: {
         flex: 1,
         backgroundColor: "#d90000",
@@ -412,6 +427,8 @@ const styles = {
         fontSize: "16px",
         fontWeight: "600",
     },
+
+    // Carousel
     carousel: {
         backgroundColor: "#fff",
         padding: "20px",
@@ -420,25 +437,62 @@ const styles = {
         marginBottom: "20px",
     },
     carouselBox: {
-        height: "250px",
-        maxWidth: "600px",
+        width: "100%",
+        maxWidth: 900,
         margin: "0 auto",
-        borderRadius: "8px",
+        borderRadius: "12px",
         overflow: "hidden",
         position: "relative",
-        backgroundColor: "#eee",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
+        backgroundColor: "#fff", // gri yerine beyaz, ama oran eşleştiği için görünmez
+        display: "block",
     },
     carouselImage: {
         width: "100%",
         height: "100%",
-        objectFit: "contain",
-        borderRadius: "8px",
+        objectFit: "contain", // kesme yok, görüntü orijinali gibi
+        display: "block",
+    },
+
+    // Controls
+    arrowBtn: {
         position: "absolute",
-        top: 0,
+        top: "50%",
+        transform: "translateY(-50%)",
+        background: "rgba(0,0,0,0.5)",
+        color: "#fff",
+        border: "none",
+        width: 36,
+        height: 36,
+        borderRadius: "50%",
+        cursor: "pointer",
+        fontSize: 20,
+        lineHeight: "36px",
+        textAlign: "center",
+        zIndex: 2,
+        userSelect: "none",
+    },
+    dots: {
+        position: "absolute",
+        bottom: 10,
         left: 0,
+        right: 0,
+        display: "flex",
+        gap: 8,
+        justifyContent: "center",
+        zIndex: 2,
+    },
+    dot: {
+        width: 10,
+        height: 10,
+        borderRadius: "50%",
+        background: "#fff",
+        border: "2px solid #d90000",
+        opacity: 0.8,
+        cursor: "pointer",
+    },
+    dotActive: {
+        background: "#d90000",
+        opacity: 1,
     },
 };
 
