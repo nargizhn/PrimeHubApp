@@ -1,12 +1,21 @@
 import React, { useEffect, useState } from "react";
 import { getAuth } from "firebase/auth";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { API_ENDPOINTS, formatRating } from "../config/api";
 
 const RateVendors = () => {
   const [vendors, setVendors] = useState([]);
   const [userRatings, setUserRatings] = useState({}); // { vendorId: { price, time, quality } }
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const auth = getAuth();
+  const navigate = useNavigate();
+
+  // responsive
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   const fetchVendors = async () => {
     try {
@@ -93,172 +102,198 @@ const RateVendors = () => {
     }
   };
 
+  // shared styles aligned with VendorList
+  const styles = {
+    container: {
+      padding: isMobile ? 10 : 20,
+      fontFamily: "Segoe UI, sans-serif",
+      minHeight: "calc(100vh - 120px)",
+      display: "flex",
+      flexDirection: "column",
+      backgroundColor: "#f5f5f5",
+    },
+    header: { marginBottom: isMobile ? 20 : 30, textAlign: "center" },
+    title: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 10,
+      margin: 0,
+      fontSize: isMobile ? 24 : 28,
+      fontWeight: "bold",
+      color: "#333",
+    },
+  titleAccent: { color: "#ff2d2d" },
+    controls: {
+      display: "flex",
+      gap: isMobile ? 10 : 20,
+      alignItems: isMobile ? "stretch" : "center",
+      flexDirection: isMobile ? "column" : "row",
+      marginBottom: 30,
+      padding: 20,
+      backgroundColor: "#fff",
+      borderRadius: 12,
+  boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
+    },
+    backBtn: {
+      padding: "10px 20px",
+      backgroundColor: "#6c757d",
+      color: "#fff",
+      border: "none",
+      borderRadius: 8,
+      cursor: "pointer",
+      fontSize: 14,
+      fontWeight: 500,
+      transition: "background-color 0.2s",
+      width: isMobile ? "100%" : "auto",
+    },
+    tableWrapper: {
+      backgroundColor: "#fff",
+      borderRadius: 12,
+      boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
+      overflow: "hidden",
+  borderTop: "3px solid #ff2d2d",
+    },
+    table: { width: "100%", borderCollapse: "collapse", fontSize: 14 },
+    th: {
+      padding: "15px 10px",
+      textAlign: "left",
+      fontWeight: "bold",
+      borderBottom: "2px solid #dee2e6",
+      color: "#495057",
+  backgroundColor: "#ffe9e9",
+    },
+    tr: { borderBottom: "1px solid #dee2e6", transition: "background-color 0.2s" },
+    td: { padding: "12px 10px", verticalAlign: "middle", color: "#495057", fontSize: 13 },
+    ratingStar: (active) => ({
+      background: "none",
+      border: "none",
+      color: active ? "#ffc107" : "#dee2e6",
+      fontSize: 20,
+      cursor: "pointer",
+      padding: 0,
+    }),
+    submitBtn: (enabled) => ({
+      padding: "8px 16px",
+      backgroundColor: enabled ? "#ff2d2d" : "#e9ecef",
+      color: enabled ? "#fff" : "#adb5bd",
+      border: "none",
+      borderRadius: 6,
+      cursor: enabled ? "pointer" : "not-allowed",
+      fontSize: 14,
+      transition: "background-color 0.2s",
+    }),
+  };
+
   return (
-    <div
-      style={{
-        padding: 10,
-        fontFamily: "Segoe UI, sans-serif",
-        minHeight: "calc(100vh - 75px)",
-        display: "flex",
-        flexDirection: "column",
-        backgroundColor: "#f9f9f9",
-      }}
-    >
-      <h1
-        style={{
-          marginBottom: 20,
-          color: "#000",
-          fontSize: "2rem",
-          fontWeight: "bold",
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-        }}
-      >
-        <Link
-          to="/"
-          style={{
-            textDecoration: "none",
-            cursor: "pointer",
-            userSelect: "none",
-            padding: "4px 8px",
-            borderRadius: 8,
-            border: "1px solid #e5e7eb",
-            background: "#fff",
-            boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-            color: "inherit",
-          }}
+    <div style={styles.container}>
+      <div style={styles.header}>
+        <h1 style={styles.title}>
+          Rate <span style={styles.titleAccent}>Vendors</span>
+        </h1>
+      </div>
+
+      <div style={styles.controls}>
+        <button
+          onClick={() => navigate("/dashboard")}
+          style={styles.backBtn}
           title="Back to Dashboard"
           aria-label="Back to Dashboard"
-          role="button"
+          onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "#5a6268")}
+          onMouseOut={(e) => (e.currentTarget.style.backgroundColor = "#6c757d")}
         >
-          &larr;
-        </Link>
-        Rate <span style={{ color: "#d90000" }}>Vendors</span>
-      </h1>
+          &larr; Back
+        </button>
+      </div>
 
-      <table
-        style={{
-          width: "100%",
-          borderCollapse: "collapse",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-          borderRadius: 8,
-          overflow: "hidden",
-          background: "#fff",
-        }}
-      >
-        <thead>
-          <tr
-            style={{
-              backgroundColor: "#ff0000ff",
-              color: "#fff",
-              textAlign: "left",
-            }}
-          >
-            <th style={{ padding: 10 }}>Name</th>
-            <th style={{ padding: 10 }}>💸 Price</th>
-            <th style={{ padding: 10 }}>⏱️ Time Mgmt</th>
-            <th style={{ padding: 10 }}>🎯 Quality</th>
-            <th style={{ padding: 10 }}>⭐ Average</th>
-            <th style={{ padding: 10 }}>Submit</th>
-          </tr>
-        </thead>
-        <tbody>
-          {vendors.length === 0 ? (
-            <tr>
-              <td colSpan={6} style={{ padding: 16, textAlign: "center", color: "#666" }}>
-                No vendors found
-              </td>
-            </tr>
-          ) : (
-            vendors.map((v) => {
-              const sel = userRatings[v.id] || {};
-              return (
-                <tr
-                  key={v.id}
-                  style={{ borderBottom: "1px solid #eee", backgroundColor: "#fff" }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f5f5f5")}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#fff")}
-                >
-                  <td style={{ padding: 10 }}>{v.name}</td>
-                  <td style={{ padding: 10 }}>
-                    {[1, 2, 3, 4, 5].map((num) => (
-                      <button
-                        key={num}
-                        style={{
-                          background: "none",
-                          border: "none",
-                          color: sel.price >= num ? "#d90000" : "#ccc",
-                          fontSize: 20,
-                          cursor: "pointer",
-                        }}
-                        onClick={() => handleRatingChange(v.id, "price", num)}
-                      >
-                        ★
-                      </button>
-                    ))}
-                  </td>
-                  <td style={{ padding: 10 }}>
-                    {[1, 2, 3, 4, 5].map((num) => (
-                      <button
-                        key={num}
-                        style={{
-                          background: "none",
-                          border: "none",
-                          color: sel.time >= num ? "#d90000" : "#ccc",
-                          fontSize: 20,
-                          cursor: "pointer",
-                        }}
-                        onClick={() => handleRatingChange(v.id, "time", num)}
-                      >
-                        ★
-                      </button>
-                    ))}
-                  </td>
-                  <td style={{ padding: 10 }}>
-                    {[1, 2, 3, 4, 5].map((num) => (
-                      <button
-                        key={num}
-                        style={{
-                          background: "none",
-                          border: "none",
-                          color: sel.quality >= num ? "#d90000" : "#ccc",
-                          fontSize: 20,
-                          cursor: "pointer",
-                        }}
-                        onClick={() => handleRatingChange(v.id, "quality", num)}
-                      >
-                        ★
-                      </button>
-                    ))}
-                  </td>
-                  <td style={{ padding: 10, fontWeight: 600, color: "#d90000" }}>
-                                      <td>{formatRating(v.rating, v.ratingCount)}</td>
-                  </td>
-                  <td style={{ padding: 10 }}>
-                    <button
-                      style={{
-                        backgroundColor: "#d90000",
-                        color: "#fff",
-                        padding: "6px 14px",
-                        borderRadius: 6,
-                        border: "none",
-                        cursor: sel.price && sel.time && sel.quality ? "pointer" : "not-allowed",
-                        fontSize: 16,
-                        boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
-                      }}
-                      disabled={!(sel.price && sel.time && sel.quality)}
-                      onClick={() => handleSubmit(v)}
-                    >
-                      Submit
-                    </button>
+      <div style={styles.tableWrapper}>
+        <div style={{ overflowX: "auto" }}>
+          <table style={styles.table}>
+            <thead>
+              <tr>
+                <th style={styles.th}>Name</th>
+                <th style={styles.th}>💸 Price</th>
+                <th style={styles.th}>⏱️ Time Mgmt</th>
+                <th style={styles.th}>🎯 Quality</th>
+                <th style={styles.th}>⭐ Average</th>
+                <th style={styles.th}>Submit</th>
+              </tr>
+            </thead>
+            <tbody>
+              {vendors.length === 0 ? (
+                <tr>
+                  <td colSpan={6} style={{ ...styles.td, textAlign: "center", padding: 40, color: "#6c757d", fontStyle: "italic" }}>
+                    No vendors found
                   </td>
                 </tr>
-              );
-            })
-          )}
-        </tbody>
-      </table>
+              ) : (
+                vendors.map((v) => {
+                  const sel = userRatings[v.id] || {};
+                  const enabled = !!(sel.price && sel.time && sel.quality);
+                  return (
+                    <tr
+                      key={v.id}
+                      style={styles.tr}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#ffefef")}
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#fff")}
+                    >
+                      <td style={styles.td}>{v.name}</td>
+                      <td style={styles.td}>
+                        {[1, 2, 3, 4, 5].map((num) => (
+                          <button
+                            key={num}
+                            style={styles.ratingStar((sel.price || 0) >= num)}
+                            onClick={() => handleRatingChange(v.id, "price", num)}
+                            aria-label={`Set price rating ${num}`}
+                          >
+                            ★
+                          </button>
+                        ))}
+                      </td>
+                      <td style={styles.td}>
+                        {[1, 2, 3, 4, 5].map((num) => (
+                          <button
+                            key={num}
+                            style={styles.ratingStar((sel.time || 0) >= num)}
+                            onClick={() => handleRatingChange(v.id, "time", num)}
+                            aria-label={`Set time rating ${num}`}
+                          >
+                            ★
+                          </button>
+                        ))}
+                      </td>
+                      <td style={styles.td}>
+                        {[1, 2, 3, 4, 5].map((num) => (
+                          <button
+                            key={num}
+                            style={styles.ratingStar((sel.quality || 0) >= num)}
+                            onClick={() => handleRatingChange(v.id, "quality", num)}
+                            aria-label={`Set quality rating ${num}`}
+                          >
+                            ★
+                          </button>
+                        ))}
+                      </td>
+                      <td style={{ ...styles.td, fontWeight: 600 }}>{formatRating(v.rating, v.ratingCount)}</td>
+                      <td style={styles.td}>
+                        <button
+                          style={styles.submitBtn(enabled)}
+                          disabled={!enabled}
+                          onMouseOver={(e) => enabled && (e.currentTarget.style.backgroundColor = "#e31b1b")}
+                          onMouseOut={(e) => enabled && (e.currentTarget.style.backgroundColor = "#ff2d2d")}
+                          onClick={() => handleSubmit(v)}
+                        >
+                          Submit
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 };

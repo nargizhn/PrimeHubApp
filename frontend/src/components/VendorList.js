@@ -136,7 +136,7 @@ export default function VendorList({ isAdmin }) {
             marginBottom: isMobile ? "20px" : "30px",
         },
         logo: { height: isMobile ? "40px" : "50px", width: "auto" },
-        titleAccent: { color: "#d90000" },
+    titleAccent: { color: "#ff2d2d" },
         controls: {
             display: "flex",
             flexDirection: isMobile ? "column" : "row",
@@ -170,7 +170,7 @@ export default function VendorList({ isAdmin }) {
         },
         addBtn: {
             padding: "10px 20px",
-            backgroundColor: "#d90000",
+            backgroundColor: "#ff2d2d",
             color: "white",
             border: "none",
             borderRadius: "8px",
@@ -185,6 +185,7 @@ export default function VendorList({ isAdmin }) {
             borderRadius: "12px",
             boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
             overflow: "hidden",
+            borderTop: "3px solid #ff2d2d",
         },
     });
 
@@ -223,8 +224,8 @@ export default function VendorList({ isAdmin }) {
                 <button
                     style={responsiveStyles.addBtn}
                     onClick={() => navigate("/add-vendor")}
-                    onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "#c82333")}
-                    onMouseOut={(e) => (e.currentTarget.style.backgroundColor = "#d90000")}
+                    onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "#e31b1b")}
+                    onMouseOut={(e) => (e.currentTarget.style.backgroundColor = "#ff2d2d")}
                 >
                     ➕ Add Vendor
                 </button>
@@ -236,7 +237,7 @@ export default function VendorList({ isAdmin }) {
                     <div style={{ overflowX: "auto" }}>
                         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
                             <thead>
-                            <tr style={{ backgroundColor: "#f8f9fa" }}>
+                            <tr style={{ backgroundColor: "#ffe9e9" }}>
                                 <th style={styles.tableHeader}>Category</th>
                                 <th style={styles.tableHeader}>City</th>
                                 <th style={styles.tableHeader}>Representative</th>
@@ -260,21 +261,33 @@ export default function VendorList({ isAdmin }) {
                                 filteredVendors.map((v) => {
                                     const meta = filesByVendor[v.id] || null;
                                     const attachmentValue = meta ? (
-                                        <a
-                                            href="#"
+                                        <button
                                             onClick={(e) => {
                                                 e.preventDefault();
                                                 downloadFile(meta.url, meta.name || "vendor_file");
                                             }}
-                                            style={{ color: "#93c5fd", textDecoration: "underline" }}
+                                            style={{
+                                                background: "none",
+                                                border: "none",
+                                                padding: 0,
+                                                margin: 0,
+                                                color: "#ff2d2d",
+                                                textDecoration: "underline",
+                                                cursor: "pointer",
+                                                font: "inherit",
+                                            }}
                                             title="Download attachment"
+                                            aria-label={`Download ${meta.name || "vendor file"}`}
                                         >
                                             {meta.name || "Download"}
-                                        </a>
+                                        </button>
                                     ) : "—";
 
                                     return (
-                                        <tr key={v.id ?? `${v.name}-${v.email ?? ""}`} style={styles.tableRow}>
+                                        <tr key={v.id ?? `${v.name}-${v.email ?? ""}`} style={styles.tableRow}
+                                            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#ffefef")}
+                                            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#fff")}
+                                        >
                                             <td style={styles.tableCell}>{v.category}</td>
                                             <td style={styles.tableCell}>{v.city}</td>
                                             <td style={styles.tableCell}>{v.representative}</td>
@@ -331,16 +344,25 @@ export default function VendorList({ isAdmin }) {
                                 {filteredVendors.map((v) => {
                                     const meta = filesByVendor[v.id] || null;
                                     const attachmentValue = meta ? (
-                                        <a
-                                            href="#"
+                                        <button
                                             onClick={(e) => {
                                                 e.preventDefault();
                                                 downloadFile(meta.url, meta.name || "vendor_file");
                                             }}
-                                            style={{ color: "#93c5fd", textDecoration: "underline" }}
+                                            style={{
+                                                background: "none",
+                                                border: "none",
+                                                padding: 0,
+                                                margin: 0,
+                                                color: "#ff2d2d",
+                                                textDecoration: "underline",
+                                                cursor: "pointer",
+                                                font: "inherit",
+                                            }}
+                                            aria-label={`Download ${meta.name || "vendor file"}`}
                                         >
                                             {meta.name || "Download"}
-                                        </a>
+                                        </button>
                                     ) : "—";
 
                                     return (
@@ -484,6 +506,7 @@ const styles = {
     vendorCard: {
         backgroundColor: "#fff",
         border: "1px solid #dee2e6",
+        borderTop: "3px solid #d90000",
         borderRadius: "12px",
         padding: "20px",
         boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
