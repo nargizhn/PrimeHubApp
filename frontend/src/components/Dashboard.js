@@ -7,12 +7,12 @@ import logo from "../assets/prime-logo.png";
 import { FaUser, FaList, FaStar } from "react-icons/fa";
 import Footer from "./Footer";
 
-// Eski fallback görseller
+
 import photo1 from "../assets/event1.jpg";
 import photo2 from "../assets/event2.jpg";
 import photo3 from "../assets/event3.jpg";
 
-// --- assets/carousel içindeki tüm görselleri otomatik yükle ---
+
 function loadCarouselImages() {
     try {
         const ctx = require.context("../assets/carousel", false, /\.(png|jpe?g|webp|gif)$/i);
@@ -43,7 +43,7 @@ const Dashboard = ({ setUser }) => {
         newRequests: 0,
     });
 
-    // Görsellerin doğal en/boy oranını preload ederek al
+
     useEffect(() => {
         let mounted = true;
         const tmp = [];
@@ -73,7 +73,7 @@ const Dashboard = ({ setUser }) => {
         };
     }, [photos]);
 
-    // Resize
+
     useEffect(() => {
         const handleResize = () => {
             const mobile = window.innerWidth <= 1024;
@@ -92,7 +92,7 @@ const Dashboard = ({ setUser }) => {
         }
     };
 
-    // Carousel autoplay
+
     useEffect(() => {
         if (photos.length <= 1) return;
         const t = setInterval(() => {
@@ -101,7 +101,7 @@ const Dashboard = ({ setUser }) => {
         return () => clearInterval(t);
     }, [photos.length]);
 
-    // Metrics
+
     const fetchMetrics = async () => {
         try {
             const auth = getAuth();
@@ -147,13 +147,13 @@ const Dashboard = ({ setUser }) => {
 
     useEffect(() => {
         fetchMetrics();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+
     }, []);
 
     const prevSlide = () => setCurrentIndex((i) => (i - 1 + photos.length) % photos.length);
     const nextSlide = () => setCurrentIndex((i) => (i + 1) % photos.length);
 
-    // Responsive styles
+
     const getResponsiveStyles = () => ({
         container: {
             ...styles.container,
@@ -188,7 +188,6 @@ const Dashboard = ({ setUser }) => {
         },
         carouselBox: {
             ...styles.carouselBox,
-            // kutu yüksekliği aktif görselin oranına göre dinamik
             aspectRatio: ratios[currentIndex] || 16 / 9,
             maxWidth: isMobile ? "100%" : 360,
         },
